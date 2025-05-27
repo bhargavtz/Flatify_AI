@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,15 +9,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AppLogo } from '@/components/AppLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { useUserRole } from '@/contexts/UserRoleContext'; // Import useUserRole
+import { useUserRole } from '@/contexts/UserRoleContext';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoadingAuth } = useAuth();
-  const { setUserRole } = useUserRole(); // Get setUserRole
-  const router = useRouter();
-  const searchParams = useSearchParams(); // To get query params
+  const { setUserRole } = useUserRole();
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -26,12 +24,53 @@ export default function LoginPage() {
     if (success) {
       const intendedRole = searchParams.get('intendedRole') as 'novice' | 'professional' | null;
       if (intendedRole) {
-        setUserRole(intendedRole); // Set role if passed in query
+        setUserRole(intendedRole);
       }
-      // Login function already handles redirect to '/'
     }
   };
 
+  return (
+    <div>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-4">
+        <Button type="submit" className="w-full" disabled={isLoadingAuth} onClick={handleSubmit}>
+          {isLoadingAuth ? 'Logging in...' : 'Login'}
+        </Button>
+        <p className="text-sm text-center text-muted-foreground">
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="font-medium text-primary hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </CardFooter>
+    </div>
+  );
+}
+
+export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background selection:bg-accent selection:text-accent-foreground">
       <div className="mb-8">
@@ -44,43 +83,9 @@ export default function LoginPage() {
             Log in to continue to Flatify AI.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoadingAuth}>
-              {isLoadingAuth ? 'Logging in...' : 'Login'}
-            </Button>
-            <p className="text-sm text-center text-muted-foreground">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-medium text-primary hover:underline">
-                Sign up
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
+        <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+          <LoginForm />
+        </Suspense>
       </Card>
     </div>
   );
