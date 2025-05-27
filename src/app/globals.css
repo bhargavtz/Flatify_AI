@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* New Light Theme */
+    --background: 220 30% 97%; /* Very Light Cool Gray */
+    --foreground: 220 25% 25%; /* Dark Slate Blue */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 220 25% 20%; /* Dark Slate Blue for card text */
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 220 25% 20%;
+    --primary: 217 91% 60%; /* Vibrant Blue */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 220 25% 90%; /* Light Gray-Blue */
+    --secondary-foreground: 220 25% 30%; /* Darker Gray-Blue for text on secondary */
+    --muted: 220 25% 90%;
+    --muted-foreground: 220 20% 55%; /* Muted text color */
+    --accent: 170 70% 45%; /* Modern Teal */
+    --accent-foreground: 0 0% 100%; /* White */
+    --destructive: 0 72% 51%; /* Adjusted Destructive Red */
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 20% 88%; /* Subtle Gray Border */
+    --input: 220 20% 92%; /* Input background */
+    --ring: 217 91% 65%; /* Focus ring, slightly lighter primary */
+    
+    --chart-1: 217 91% 60%; /* Primary Blue */
+    --chart-2: 170 70% 45%; /* Accent Teal */
+    --chart-3: 30 80% 60%; /* Orange */
+    --chart-4: 260 85% 70%; /* Purple */
+    --chart-5: 340 80% 65%; /* Pink */
+    --radius: 0.5rem;
+
+    /* Sidebar variables (can be adjusted if sidebar is used later) */
+    --sidebar-background: 220 25% 95%;
+    --sidebar-foreground: 220 25% 20%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 170 70% 45%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 20% 85%;
+    --sidebar-ring: 217 91% 65%;
+  }
+
+  .dark {
+    /* New Dark Theme */
+    --background: 220 25% 10%; /* Very Dark Desaturated Blue */
+    --foreground: 220 15% 85%; /* Light Gray */
+    --card: 220 25% 15%; /* Darker Gray, slightly lighter than bg */
+    --card-foreground: 220 15% 80%;
+    --popover: 220 25% 12%;
+    --popover-foreground: 220 15% 80%;
+    --primary: 217 91% 65%; /* Brighter Blue for dark mode */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 25% 22%; 
+    --secondary-foreground: 220 15% 80%;
+    --muted: 220 25% 22%;
+    --muted-foreground: 220 15% 60%;
+    --accent: 170 70% 55%; /* Brighter Teal for dark mode */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 55%; /* Adjusted Destructive Red for dark */
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 15% 30%; /* Darker Border */
+    --input: 220 20% 20%; /* Input background */
+    --ring: 217 91% 70%;
+    
+    --chart-1: 217 91% 65%;
+    --chart-2: 170 70% 55%;
+    --chart-3: 30 70% 60%;
+    --chart-4: 260 75% 70%;
+    --chart-5: 340 70% 65%;
+
+    --sidebar-background: 220 25% 12%;
+    --sidebar-foreground: 220 15% 80%;
+    --sidebar-primary: 217 91% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 170 70% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 15% 28%;
+    --sidebar-ring: 217 91% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Removed explicit font-family to allow Next/Font to correctly apply Geist */
+  }
+}
