@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -45,7 +45,7 @@ interface ImageEditorGeneration {
 type TextPromptHistoryItem = string; 
 
 export default function DashboardPage() {
-  const { currentUser, isLoadingAuth } = useAuth();
+  const { user, isLoaded, isSignedIn } = useUser();
   const { toast } = useToast();
 
   const [textPromptHistory, setTextPromptHistory] = useState<TextPromptHistoryItem[]>([]);
@@ -114,16 +114,16 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!isLoadingAuth && currentUser && currentUser.id) {
-      fetchAllData(currentUser.id);
-    } else if (!isLoadingAuth && !currentUser) {
+    if (isLoaded && isSignedIn && user?.id) {
+      fetchAllData(user.id);
+    } else if (isLoaded && !isSignedIn) {
       setIsLoadingHistory(false);
       setIsLoadingNovice(false);
       setIsLoadingProfessional(false);
       setIsLoadingImageEditor(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, isLoadingAuth]); // Removed toast from deps
+  }, [user, isLoaded, isSignedIn]); // Removed toast from deps
 
   const downloadLogo = (logoDataUri: string, filenamePrefix: string = "logo") => {
     const link = document.createElement('a');
@@ -136,7 +136,7 @@ export default function DashboardPage() {
     toast({ title: "Downloading...", description: "Your logo will be downloaded shortly."});
   };
 
-  if (isLoadingAuth) {
+  if (!isLoaded || (isLoaded && !isSignedIn)) {
     return (
       <div className="flex items-center justify-center flex-grow p-4">
         <LoadingSpinner size="xl" />
@@ -144,7 +144,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="flex flex-col items-center justify-center flex-grow p-4 text-center">
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
@@ -165,7 +165,7 @@ export default function DashboardPage() {
             <div>
               <CardTitle className="text-3xl sm:text-4xl font-bold">My Dashboard</CardTitle>
               <CardDescription className="text-md sm:text-lg text-muted-foreground mt-1">
-                Welcome back, {currentUser.name}! Review your creations and prompt history.
+                Welcome back, {user.fullName || user.emailAddresses[0]?.emailAddress || 'User'}! Review your creations and prompt history.
               </CardDescription>
             </div>
           </div>

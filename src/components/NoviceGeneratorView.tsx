@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LogoDisplayArea } from './LogoDisplayArea';
 import { Wand2, Palette, Info, Save } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@clerk/nextjs';
 import { LoadingSpinner } from './LoadingSpinner';
 
 const SimpleColorPicker = ({ label, color, setColor }: { label: string, color: string, setColor: (color: string) => void }) => (
@@ -41,7 +41,7 @@ export function NoviceGeneratorView() {
   const [currentFullDescription, setCurrentFullDescription] = useState(''); // To store description used for generation
 
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { user } = useUser();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -82,7 +82,7 @@ export function NoviceGeneratorView() {
   };
 
   const handleSaveNoviceGeneration = async () => {
-    if (!logoSrc || !currentUser || !currentUser.id) {
+    if (!logoSrc || !user?.id) {
       toast({ title: "Cannot Save", description: "No logo generated or not logged in.", variant: "destructive" });
       return;
     }
@@ -93,7 +93,7 @@ export function NoviceGeneratorView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser.id,
+          userId: user.id,
           businessName,
           businessDescription: currentFullDescription, // Use the description that was sent to AI
           primaryColor,
@@ -212,7 +212,7 @@ export function NoviceGeneratorView() {
               )}
               Generate Logo
             </Button>
-            {currentUser && logoSrc && (
+            {user && logoSrc && (
               <Button onClick={handleSaveNoviceGeneration} variant="outline" size="lg" className="w-full sm:w-auto text-lg" disabled={isLoading}>
                 <Save className="mr-2 h-5 w-5" />
                 Save Logo

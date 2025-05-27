@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@clerk/nextjs';
 import { LoadingSpinner } from './LoadingSpinner';
 
 const MAX_HISTORY_ITEMS_LOCALSTORAGE = 10; 
@@ -45,13 +45,13 @@ export function ProfessionalGeneratorView() {
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
   const { toast } = useToast();
-  const { currentUser } = useAuth(); 
+  const { user, isLoaded, isSignedIn } = useUser();
 
   useEffect(() => {
     const loadHistory = async () => {
-      if (currentUser && currentUser.id) {
+      if (isLoaded && isSignedIn && user?.id) {
         try {
-          const response = await fetch(`/api/user/prompt-history?userId=${currentUser.id}`);
+          const response = await fetch(`/api/user/prompt-history?userId=${user.id}`);
           const data = await response.json();
           if (data.success && data.promptHistory) {
             setPromptHistory(data.promptHistory);
@@ -60,15 +60,14 @@ export function ProfessionalGeneratorView() {
           }
         } catch (error) {
           console.error("Failed to load prompt history from API:", error);
-          loadHistoryFromLocalStorage(); 
+          loadHistoryFromLocalStorage();
         }
-      } else {
+      } else if (isLoaded && !isSignedIn) {
         loadHistoryFromLocalStorage();
       }
     };
     loadHistory();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+  }, [isLoaded, isSignedIn, user]);
   
   const loadHistoryFromLocalStorage = () => {
     try {
@@ -83,12 +82,12 @@ export function ProfessionalGeneratorView() {
 
 
   const updatePromptHistory = async (newPrompt: string) => {
-    if (currentUser && currentUser.id) {
+    if (isSignedIn && user?.id) {
       try {
         const response = await fetch('/api/user/prompt-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUser.id, prompt: newPrompt }),
+          body: JSON.stringify({ userId: user.id, prompt: newPrompt }),
         });
         const data = await response.json();
         if (data.success && data.promptHistory) {
@@ -114,9 +113,9 @@ export function ProfessionalGeneratorView() {
   };
 
   const handleClearHistory = async () => {
-    if (currentUser && currentUser.id) {
+    if (isSignedIn && user?.id) {
       try {
-        const response = await fetch(`/api/user/prompt-history?userId=${currentUser.id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/user/prompt-history?userId=${user.id}`, { method: 'DELETE' });
         const data = await response.json();
         if (data.success) {
           setPromptHistory([]);
@@ -183,7 +182,7 @@ export function ProfessionalGeneratorView() {
   };
 
   const handleSaveProfessionalGeneration = async () => {
-    if (!logoSrc || !currentUser || !currentUser.id) {
+    if (!logoSrc || !isSignedIn || !user?.id) {
       toast({ title: "Cannot Save", description: "No logo generated or not logged in.", variant: "destructive" });
       return;
     }
@@ -198,7 +197,7 @@ export function ProfessionalGeneratorView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser.id,
+          userId: user.id,
           originalPrompt: prompt, // The prompt currently in the textarea
           refinedPrompt: refinedPrompt, // The refined prompt if it exists
           usedPrompt: currentUsedPrompt, // The prompt that was actually sent to AI
@@ -318,7 +317,7 @@ export function ProfessionalGeneratorView() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-center py-6">
-            {currentUser && logoSrc && (
+            {isSignedIn && logoSrc && (
               <Button onClick={handleSaveProfessionalGeneration} variant="outline" size="lg" className="w-full sm:w-auto text-lg" disabled={isLoading}>
                 <Save className="mr-2 h-5 w-5" />
                 Save Professional Logo
@@ -333,7 +332,7 @@ export function ProfessionalGeneratorView() {
               <History className="w-6 h-6 text-primary" /> Prompt History
             </CardTitle>
             <CardDescription>
-              {currentUser ? "Your recently used text prompts (saved to your account)." : "Recently used text prompts (saved locally)."}
+              {isSignedIn ? "Your recently used text prompts (saved to your account)." : "Recently used text prompts (saved locally)."}
             </CardDescription>
           </CardHeader>
           <CardContent>

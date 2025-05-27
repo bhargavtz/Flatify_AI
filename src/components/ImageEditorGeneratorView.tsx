@@ -12,7 +12,7 @@ import { generateSimilarLogo, type GenerateSimilarLogoInput } from '@/ai/flows/g
 import { useToast } from '@/hooks/use-toast';
 import { LogoDisplayArea } from './LogoDisplayArea';
 import { UploadCloud, Wand2, Save, ImageUp } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@clerk/nextjs';
 import { LoadingSpinner } from './LoadingSpinner';
 
 export function ImageEditorGeneratorView() {
@@ -27,7 +27,7 @@ export function ImageEditorGeneratorView() {
   const [generatedLogoSrc, setGeneratedLogoSrc] = useState<string | null>(null);
   
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { user } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +98,7 @@ export function ImageEditorGeneratorView() {
   };
 
   const handleSaveImageEditorGeneration = async () => {
-    if (!generatedLogoSrc || !currentUser || !currentUser.id || !sourceImageDataUri) {
+    if (!generatedLogoSrc || !user?.id || !sourceImageDataUri) {
       toast({ title: "Cannot Save", description: "Missing data, logo not generated, or not logged in.", variant: "destructive" });
       return;
     }
@@ -109,7 +109,7 @@ export function ImageEditorGeneratorView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser.id,
+          userId: user.id,
           sourceImageUri: sourceImageDataUri,
           sourceImageOriginalName: sourceImageFile?.name || "uploaded_image",
           businessName,
@@ -216,7 +216,7 @@ export function ImageEditorGeneratorView() {
               )}
               Generate Similar Logo
             </Button>
-            {currentUser && generatedLogoSrc && (
+            {user && generatedLogoSrc && (
               <Button onClick={handleSaveImageEditorGeneration} variant="outline" size="lg" className="w-full sm:w-auto text-lg" disabled={isLoading}>
                 <Save className="mr-2 h-5 w-5" />
                 Save Logo

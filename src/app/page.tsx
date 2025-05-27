@@ -4,34 +4,34 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useUser } from '@clerk/nextjs';
 import { useUserRole, type UserRole } from '@/contexts/UserRoleContext';
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 import { AppLogo } from '@/components/AppLogo';
-import { ArrowRight, Briefcase, Brush, UploadCloud } from 'lucide-react'; 
+import { ArrowRight, Briefcase, Brush, UploadCloud } from 'lucide-react';
 import { useEffect } from 'react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function LandingPage() {
   const router = useRouter();
   const { setUserRole, userRole, isLoading: isLoadingRole } = useUserRole();
-  const { currentUser, isLoadingAuth } = useAuth(); 
+  const { isSignedIn, isLoaded } = useUser();
 
   useEffect(() => {
-    if (!isLoadingAuth && currentUser && !isLoadingRole && userRole) {
+    if (isLoaded && isSignedIn && !isLoadingRole && userRole) {
       router.push('/generate');
     }
-  }, [currentUser, userRole, isLoadingAuth, isLoadingRole, router]);
-  
-  if (isLoadingAuth || (currentUser && isLoadingRole && !userRole) ) {
+  }, [isSignedIn, userRole, isLoaded, isLoadingRole, router]);
+
+  if (!isLoaded || (isSignedIn && isLoadingRole && !userRole)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <LoadingSpinner size="xl" />
       </div>
     );
   }
-  
-  if (currentUser && userRole) {
-     return (
+
+  if (isSignedIn && userRole) {
+    return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <LoadingSpinner size="xl" />
       </div>
@@ -40,12 +40,15 @@ export default function LandingPage() {
 
   const handleRoleSelection = (role: UserRole) => {
     if (!role) return;
-    setUserRole(role); 
+    setUserRole(role);
 
-    if (currentUser) {
-      router.push('/generate'); 
+    if (isSignedIn) {
+      router.push('/generate');
     } else {
-      router.push(`/login?intendedRole=${role}`);
+      // If not signed in, Clerk's components in layout.tsx will prompt login/signup
+      // No need to redirect to a custom login page with intendedRole
+      // The user will be redirected to Clerk's sign-in page if they try to access a protected route
+      // or they can use the Sign In/Sign Up buttons in the header.
     }
   };
 
@@ -59,10 +62,10 @@ export default function LandingPage() {
         <p className="mt-3 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto">
           Generate unique, professional flat design logos for your business using advanced AI.
         </p>
-         {currentUser && !userRole && (
-          <p className="mt-4 text-md text-primary font-medium">Welcome, {currentUser.name}! Please select your role to continue.</p>
+        {isSignedIn && !userRole && (
+          <p className="mt-4 text-md text-primary font-medium">Welcome! Please select your role to continue.</p>
         )}
-        {!currentUser && (
+        {!isSignedIn && (
           <p className="mt-4 text-md text-primary font-medium">Please select a role to get started. You'll be prompted to log in or sign up.</p>
         )}
       </header>
