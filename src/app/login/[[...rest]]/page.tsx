@@ -18,7 +18,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <div className="flex justify-center p-6">
-          <SignIn />
+          <SignIn routing="hash" />
         </div>
       </Card>
     </div>

@@ -37,15 +37,8 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`} suppressHydrationWarning={true}>
-          <header className="flex justify-end items-center p-4 gap-4 h-16">
-            <SignedOut>
-              <SignInButton />
-              <SignUpButton />
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
-          </header>
+          {/* Removed Clerk's UserButton from root layout to avoid duplication with AppLayout's custom user menu */}
+          {/* Removed header for signed-out users as requested */}
           <UserRoleProvider>
             {children}
             <Toaster />

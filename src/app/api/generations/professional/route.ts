@@ -10,15 +10,11 @@ export async function POST(request: NextRequest) {
     if (!userId || !usedPrompt || !logoDataUri) {
       return NextResponse.json({ success: false, message: 'User ID, used prompt, and logo data are required.' }, { status: 400 });
     }
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
-
     const client = await clientPromise;
     const db = client.db();
     
     const newGeneration = {
-      userId: new ObjectId(userId),
+      userId,
       originalPrompt,
       refinedPrompt,
       usedPrompt,
@@ -46,14 +42,10 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ success: false, message: 'User ID is required.' }, { status: 400 });
     }
-     if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
-
     const client = await clientPromise;
     const db = client.db();
     const generations = await db.collection('professional_generations')
-      .find({ userId: new ObjectId(userId) })
+      .find({ userId })
       .sort({ createdAt: -1 })
       .toArray();
 

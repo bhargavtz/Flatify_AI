@@ -10,15 +10,11 @@ export async function POST(request: NextRequest) {
     if (!userId || !logoDataUri || !businessName || !businessDescription) {
       return NextResponse.json({ success: false, message: 'User ID, business name, description, and logo data are required.' }, { status: 400 });
     }
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
-
     const client = await clientPromise;
     const db = client.db();
     
     const newGeneration = {
-      userId: new ObjectId(userId),
+      userId,
       businessName,
       businessDescription, // This should be the full description used for generation
       primaryColor,
@@ -47,14 +43,10 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ success: false, message: 'User ID is required.' }, { status: 400 });
     }
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
-
     const client = await clientPromise;
     const db = client.db();
     const generations = await db.collection('novice_generations')
-      .find({ userId: new ObjectId(userId) })
+      .find({ userId })
       .sort({ createdAt: -1 })
       .toArray();
 

@@ -133,92 +133,94 @@ export function ImageEditorGeneratorView() {
 
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Card className="max-w-4xl mx-auto shadow-2xl">
+    <div className="py-4 px-4 sm:px-6 lg:px-8 w-full">
+      <Card className="shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2">
-            <ImageUp className="w-8 h-8 text-primary" /> Image-Based Logo Generator
+          <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+            <ImageUp className="w-7 h-7 text-primary" /> Image-Based Logo Generator
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Upload an image, describe your business, and get a new AI-generated logo inspired by your upload.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <div className="space-y-3">
-                <Label htmlFor="sourceImageUpload">Upload Source Image (Max 4MB)</Label>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="space-y-2">
+                <Label htmlFor="sourceImageUpload" className="text-sm">Upload Source Image (Max 4MB)</Label>
                 <Input
                   id="sourceImageUpload"
                   type="file"
                   accept="image/png, image/jpeg, image/webp"
                   onChange={handleImageUpload}
                   ref={fileInputRef}
-                  className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  className="text-xs file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                 />
                 {sourceImagePreview && (
-                  <div className="mt-4 p-2 border rounded-md bg-secondary/30 aspect-square flex items-center justify-center">
-                    <Image 
-                      src={sourceImagePreview} 
-                      alt="Source preview" 
-                      width={250} 
-                      height={250} 
-                      className="rounded-md object-contain max-h-[250px]"
+                  <div className="mt-2 p-1 border rounded-md bg-secondary/30 aspect-square flex items-center justify-center">
+                    <Image
+                      src={sourceImagePreview}
+                      alt="Source preview"
+                      width={200}
+                      height={200}
+                      className="rounded-md object-contain max-h-[200px]"
                       data-ai-hint="uploaded image"
                     />
                   </div>
                 )}
                 {!sourceImagePreview && (
-                   <div className="mt-4 p-2 border border-dashed rounded-md bg-secondary/30 aspect-square flex flex-col items-center justify-center text-muted-foreground">
-                    <UploadCloud className="w-12 h-12 mb-2" />
-                    <p className="text-sm">Image preview will appear here.</p>
+                   <div className="mt-2 p-1 border border-dashed rounded-md bg-secondary/30 aspect-square flex flex-col items-center justify-center text-muted-foreground text-sm">
+                    <UploadCloud className="w-10 h-10 mb-1" />
+                    <p className="text-xs">Image preview will appear here.</p>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <Label htmlFor="businessNameImage">Business Name</Label>
+                  <Label htmlFor="businessNameImage" className="text-sm">Business Name</Label>
                   <Input
                     id="businessNameImage"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="e.g., Your New Brand"
                     required
+                    className="text-sm"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="businessDescriptionImage">Business Description</Label>
+                  <Label htmlFor="businessDescriptionImage" className="text-sm">Business Description</Label>
                   <Textarea
                     id="businessDescriptionImage"
                     value={businessDescription}
                     onChange={(e) => setBusinessDescription(e.target.value)}
                     placeholder="Describe what your business does or its style. This will guide the new logo."
                     required
-                    rows={4}
+                    rows={3}
+                    className="text-sm"
                   />
                 </div>
               </div>
             </div>
-            
-            <div className="pt-4">
-               <h3 className="text-xl font-semibold mb-2 text-center">Generated Logo</h3>
+
+            <div className="pt-2">
+               <h3 className="text-lg font-semibold mb-1 text-center">Generated Logo</h3>
               <LogoDisplayArea logoSrc={generatedLogoSrc} isLoading={isLoading} businessName={businessName} />
             </div>
 
           </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-4 py-6">
-            <Button type="submit" size="lg" disabled={isLoading || !sourceImageDataUri} className="w-full sm:w-auto text-lg">
+          <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-3 py-4">
+            <Button type="submit" size="sm" disabled={isLoading || !sourceImageDataUri} className="w-full sm:w-auto text-base">
               {isLoading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : (
-                <Wand2 className="mr-2 h-5 w-5" />
+                <Wand2 className="mr-2 h-4 w-4" />
               )}
               Generate Similar Logo
             </Button>
             {user && generatedLogoSrc && (
-              <Button onClick={handleSaveImageEditorGeneration} variant="outline" size="lg" className="w-full sm:w-auto text-lg" disabled={isLoading}>
-                <Save className="mr-2 h-5 w-5" />
+              <Button onClick={handleSaveImageEditorGeneration} variant="outline" size="sm" className="w-full sm:w-auto text-base" disabled={isLoading}>
+                <Save className="mr-2 h-4 w-4" />
                 Save Logo
               </Button>
             )}

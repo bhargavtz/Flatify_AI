@@ -226,21 +226,21 @@ export function ProfessionalGeneratorView() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <Card className="lg:col-span-2">
+    <div className="py-4 px-4 sm:px-6 lg:px-8 w-full">
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        <Card className="lg:col-span-2 shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              <Sparkles className="w-8 h-8 text-primary" /> Advanced Logo Generation
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Sparkles className="w-7 h-7 text-primary" /> Advanced Logo Generation
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Craft detailed prompts, use the prompt library, or leverage AI refinement for precise logo designs.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="promptLibrarySelect" className="flex items-center gap-1">
-                <BookOpen className="w-4 h-4" />
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="promptLibrarySelect" className="flex items-center gap-1 text-sm">
+                <BookOpen className="w-3.5 h-3.5" />
                 Prompt Library (Examples)
               </Label>
               <Select
@@ -252,7 +252,7 @@ export function ProfessionalGeneratorView() {
                   }
                 }}
               >
-                <SelectTrigger id="promptLibrarySelect" className="w-full">
+                <SelectTrigger id="promptLibrarySelect" className="w-full text-sm">
                   <SelectValue placeholder="Select an example prompt..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -265,8 +265,8 @@ export function ProfessionalGeneratorView() {
               </Select>
             </div>
             
-            <div>
-              <Label htmlFor="professionalPrompt">Your Detailed Prompt</Label>
+            <div className="space-y-1">
+              <Label htmlFor="professionalPrompt" className="text-sm">Your Detailed Prompt</Label>
               <Textarea
                 id="professionalPrompt"
                 value={prompt}
@@ -275,17 +275,17 @@ export function ProfessionalGeneratorView() {
                   setRefinedPrompt(''); // Clear refined if user edits base prompt
                 }}
                 placeholder="e.g., A sleek, monochrome flat logo for 'QuantumLeap AI'..."
-                rows={5}
-                className="text-base"
+                rows={4}
+                className="text-sm min-h-[100px]"
               />
               <div className="flex flex-wrap gap-2 mt-2">
-                <Button onClick={handleRefinePrompt} disabled={isRefining || isLoading} variant="outline">
+                <Button onClick={handleRefinePrompt} disabled={isRefining || isLoading} variant="outline" size="sm">
                   {isRefining ? (
                      <LoadingSpinner size="sm" className="mr-2" />
                   ) : <Sparkles className="mr-2 h-4 w-4" />}
                   Refine Prompt
                 </Button>
-                <Button onClick={() => handleGenerateLogo(prompt)} disabled={isLoading || isRefining} size="default">
+                <Button onClick={() => handleGenerateLogo(prompt)} disabled={isLoading || isRefining} size="sm">
                    {isLoading && !isRefining ? (
                      <LoadingSpinner size="sm" className="mr-2" />
                   ) : <Wand2 className="mr-2 h-4 w-4" />}
@@ -295,43 +295,43 @@ export function ProfessionalGeneratorView() {
             </div>
 
             {refinedPrompt && (
-              <div className="space-y-2 p-4 border rounded-md bg-secondary/30">
-                <Label htmlFor="refinedPromptResult" className="font-semibold">AI Refined Prompt:</Label>
-                <Textarea id="refinedPromptResult" value={refinedPrompt} readOnly rows={4} className="text-base bg-background"/>
+              <div className="space-y-1 p-3 border rounded-md bg-secondary/30">
+                <Label htmlFor="refinedPromptResult" className="font-semibold text-sm">AI Refined Prompt:</Label>
+                <Textarea id="refinedPromptResult" value={refinedPrompt} readOnly rows={3} className="text-sm bg-background min-h-[80px]"/>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Button onClick={() => copyToClipboard(refinedPrompt)} variant="ghost" size="sm">
-                    <Copy className="mr-2 h-4 w-4" /> Copy
+                    <Copy className="mr-2 h-3.5 w-3.5" /> Copy
                   </Button>
                   <Button onClick={() => { setPrompt(refinedPrompt); setRefinedPrompt(''); }} variant="ghost" size="sm">
-                    <RotateCcw className="mr-2 h-4 w-4" /> Use Refined Prompt
+                    <RotateCcw className="mr-2 h-3.5 w-3.5" /> Use Refined Prompt
                   </Button>
                    <Button onClick={() => handleGenerateLogo(refinedPrompt)} disabled={isLoading || isRefining} variant="outline" size="sm">
-                    <Wand2 className="mr-2 h-4 w-4" /> Generate with Refined
+                    <Wand2 className="mr-2 h-3.5 w-3.5" /> Generate with Refined
                   </Button>
                 </div>
               </div>
             )}
             
-            <div className="pt-4">
+            <div className="pt-2">
               <LogoDisplayArea logoSrc={logoSrc} isLoading={isLoading} businessName="Custom Design" />
             </div>
           </CardContent>
-          <CardFooter className="flex justify-center py-6">
+          <CardFooter className="flex justify-center py-4">
             {isSignedIn && logoSrc && (
-              <Button onClick={handleSaveProfessionalGeneration} variant="outline" size="lg" className="w-full sm:w-auto text-lg" disabled={isLoading}>
-                <Save className="mr-2 h-5 w-5" />
+              <Button onClick={handleSaveProfessionalGeneration} variant="outline" size="sm" className="w-full sm:w-auto text-base" disabled={isLoading}>
+                <Save className="mr-2 h-4 w-4" />
                 Save Professional Logo
               </Button>
             )}
           </CardFooter>
         </Card>
         
-        <Card>
+        <Card className="shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <History className="w-6 h-6 text-primary" /> Prompt History
+            <CardTitle className="text-lg flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" /> Prompt History
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               {isSignedIn ? "Your recently used text prompts (saved to your account)." : "Recently used text prompts (saved locally)."}
             </CardDescription>
           </CardHeader>
@@ -339,8 +339,8 @@ export function ProfessionalGeneratorView() {
             {promptHistory.length === 0 ? (
               <p className="text-sm text-muted-foreground">No text prompts in history yet.</p>
             ) : (
-              <ScrollArea className="h-[300px] pr-3">
-                <ul className="space-y-2">
+              <ScrollArea className="h-[200px] pr-3">
+                <ul className="space-y-1">
                   {promptHistory.map((p, index) => (
                     <li key={index} 
                         className="text-xs p-2 border rounded-md hover:bg-secondary/50 cursor-pointer transition-colors"
@@ -361,7 +361,7 @@ export function ProfessionalGeneratorView() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="mt-4 w-full" 
+                className="mt-3 w-full text-sm" 
                 onClick={handleClearHistory}
               >
                 <Trash2 className="mr-2 h-4 w-4" /> Clear History

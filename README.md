@@ -119,9 +119,10 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- Special thanks to all contributors
-- Book cover images and illustrations from various artists
-- Icons and design inspiration from the open-source community
+- Special thanks to the developers and communities behind Next.js, React, Tailwind CSS, and Shadcn UI for providing robust frameworks and components.
+- Gratitude to Google AI and Genkit for the powerful AI capabilities that drive the logo generation and image editing features.
+- Appreciation for Clerk for simplifying user authentication.
+- Thanks to the open-source community for various libraries and tools that made this project possible.
 
 ---
 Made with ❤️ by Bhargavtz

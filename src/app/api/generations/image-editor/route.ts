@@ -10,15 +10,11 @@ export async function POST(request: NextRequest) {
     if (!userId || !sourceImageUri || !businessName || !businessDescription || !logoDataUri) {
       return NextResponse.json({ success: false, message: 'User ID, source image, business details, and logo data are required.' }, { status: 400 });
     }
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
-
     const client = await clientPromise;
     const db = client.db();
     
     const newGeneration = {
-      userId: new ObjectId(userId),
+      userId, // Store userId as a string
       sourceImageUri, // Storing as data URI; consider blob storage for production
       sourceImageOriginalName,
       businessName,

@@ -116,26 +116,26 @@ export function NoviceGeneratorView() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Card className="max-w-4xl mx-auto shadow-2xl">
+    <div className="py-4 px-4 sm:px-6 lg:px-8 w-full">
+      <Card className="shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2">
-            <Wand2 className="w-8 h-8 text-primary" /> Create Your Logo
+          <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+            <Wand2 className="w-7 h-7 text-primary" /> Create Your Logo
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Tell us about your business, and we'll craft a unique flat design logo for you.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="businessNameNovice" className="flex items-center gap-1">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="businessNameNovice" className="flex items-center gap-1 text-sm">
                   Business Name
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>The official name of your business.</p>
@@ -149,16 +149,16 @@ export function NoviceGeneratorView() {
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="e.g., Sparkle Clean Co."
                   required
-                  className="text-base"
+                  className="text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                 <Label htmlFor="businessDescriptionNovice" className="flex items-center gap-1">
+              <div className="space-y-1">
+                 <Label htmlFor="businessDescriptionNovice" className="flex items-center gap-1 text-sm">
                   Business Description / Slogan
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p className="font-medium mb-1">Describe your business clearly.</p>
@@ -182,39 +182,40 @@ export function NoviceGeneratorView() {
                   onChange={(e) => setBusinessDescription(e.target.value)}
                   placeholder="e.g., 'Artisan coffee shop with a cozy vibe' or 'Tech startup focusing on sustainable solutions'"
                   required
-                  className="text-base min-h-[108px]"
+                  rows={3}
+                  className="text-sm min-h-[80px]"
                 />
               </div>
             </div>
 
-            <div className="space-y-3 p-4 border rounded-md bg-secondary/30">
+            <div className="space-y-2 p-3 border rounded-md bg-secondary/30">
               <div className="flex items-center gap-2">
-                 <Palette className="w-5 h-5 text-primary" />
-                 <h4 className="font-medium">Choose Your Colors (Optional)</h4>
+                 <Palette className="w-4 h-4 text-primary" />
+                 <h4 className="font-medium text-sm">Choose Your Colors (Optional)</h4>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <SimpleColorPicker label="Primary Color" color={primaryColor} setColor={setPrimaryColor} />
                 <SimpleColorPicker label="Secondary Color" color={secondaryColor} setColor={setSecondaryColor} />
               </div>
                <p className="text-xs text-muted-foreground">These colors will guide the AI in generating your logo.</p>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-2">
               <LogoDisplayArea logoSrc={logoSrc} isLoading={isLoading} businessName={businessName} />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-4 py-6">
-            <Button type="submit" size="lg" disabled={isLoading} className="w-full sm:w-auto text-lg">
+          <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-3 py-4">
+            <Button type="submit" size="sm" disabled={isLoading} className="w-full sm:w-auto text-base">
               {isLoading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : (
-                <Wand2 className="mr-2 h-5 w-5" />
+                <Wand2 className="mr-2 h-4 w-4" />
               )}
               Generate Logo
             </Button>
             {user && logoSrc && (
-              <Button onClick={handleSaveNoviceGeneration} variant="outline" size="lg" className="w-full sm:w-auto text-lg" disabled={isLoading}>
-                <Save className="mr-2 h-5 w-5" />
+              <Button onClick={handleSaveNoviceGeneration} variant="outline" size="sm" className="w-full sm:w-auto text-base" disabled={isLoading}>
+                <Save className="mr-2 h-4 w-4" />
                 Save Logo
               </Button>
             )}

@@ -1,131 +1,104 @@
+import Link from 'next/link';
+import { Button } from '@/components/ui/button'; // Assuming Button is needed for consistency
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'; // Assuming Card is needed for sections
 
-"use client";
-
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@clerk/nextjs';
-import { useUserRole, type UserRole } from '@/contexts/UserRoleContext';
-import { AppLogo } from '@/components/AppLogo';
-import { ArrowRight, Briefcase, Brush, UploadCloud } from 'lucide-react';
-import { useEffect } from 'react';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-
-export default function LandingPage() {
-  const router = useRouter();
-  const { setUserRole, userRole, isLoading: isLoadingRole } = useUserRole();
-  const { isSignedIn, isLoaded } = useUser();
-
-  useEffect(() => {
-    if (isLoaded && isSignedIn && !isLoadingRole && userRole) {
-      router.push('/generate');
-    }
-  }, [isSignedIn, userRole, isLoaded, isLoadingRole, router]);
-
-  if (!isLoaded || (isSignedIn && isLoadingRole && !userRole)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-        <LoadingSpinner size="xl" />
-      </div>
-    );
-  }
-
-  if (isSignedIn && userRole) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-        <LoadingSpinner size="xl" />
-      </div>
-    );
-  }
-
-  const handleRoleSelection = (role: UserRole) => {
-    if (!role) return;
-    setUserRole(role);
-
-    if (isSignedIn) {
-      router.push('/generate');
-    } else {
-      // If not signed in, Clerk's components in layout.tsx will prompt login/signup
-      // No need to redirect to a custom login page with intendedRole
-      // The user will be redirected to Clerk's sign-in page if they try to access a protected route
-      // or they can use the Sign In/Sign Up buttons in the header.
-    }
-  };
-
+export default function HomePage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 bg-background selection:bg-accent selection:text-accent-foreground">
-      <header className="mb-10 md:mb-16 text-center">
-        <AppLogo size="lg" className="justify-center mb-2" />
-        <h1 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+    <div className="flex flex-col min-h-screen">
+      {/* Header and Footer are handled by the root layout (src/app/layout.tsx) */}
+
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center text-center py-20 px-4 bg-gradient-to-b from-background to-secondary/30">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
           Flat Design Logos, Effortlessly.
         </h1>
-        <p className="mt-3 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto">
+        <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl">
           Generate unique, professional flat design logos for your business using advanced AI.
+          Simple, fast, and tailored to your brand.
         </p>
-        {isSignedIn && !userRole && (
-          <p className="mt-4 text-md text-primary font-medium">Welcome! Please select your role to continue.</p>
-        )}
-        {!isSignedIn && (
-          <p className="mt-4 text-md text-primary font-medium">Please select a role to get started. You'll be prompted to log in or sign up.</p>
-        )}
-      </header>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link href="/role-select" passHref>
+            <Button size="lg" className="text-lg px-8 py-3">
+              Get Started
+            </Button>
+          </Link>
+          <Link href="/help" passHref>
+            <Button variant="outline" size="lg" className="text-lg px-8 py-3">
+              Learn More
+            </Button>
+          </Link>
+        </div>
+      </section>
 
-      <main className="w-full max-w-3xl">
-        <Card className="shadow-xl border-2 border-transparent hover:border-primary/20 transition-all duration-300">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl sm:text-3xl text-center font-semibold">Choose Your Path</CardTitle>
-            <CardDescription className="text-center text-md sm:text-base">
-              Select the mode that best fits your creative needs.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:gap-6 p-4 sm:p-6">
-            {[
-              {
-                role: 'novice' as UserRole,
-                icon: Briefcase,
-                title: 'Small Business Owner',
-                description: 'Guided, simple logo creation for your brand.',
-              },
-              {
-                role: 'professional' as UserRole,
-                icon: Brush,
-                title: 'Freelance Designer',
-                description: 'Advanced tools and prompt control for rapid concepts.',
-              },
-              {
-                role: 'imageEditor' as UserRole,
-                icon: UploadCloud,
-                title: 'Image-Based Generator',
-                description: 'Upload an image, get a new logo in a similar style.',
-              },
-            ].map(({ role, icon: Icon, title, description }) => (
-              <Button
-                key={role}
-                variant="outline"
-                size="lg"
-                className="h-auto py-6 sm:py-8 px-6 text-left flex items-center justify-between shadow-md hover:shadow-lg hover:bg-card hover:border-primary/50 focus-visible:ring-primary/50 transition-all duration-300 group"
-                onClick={() => handleRoleSelection(role)}
-              >
-                <div className="flex items-center gap-4 sm:gap-5">
-                  <Icon className="w-10 h-10 sm:w-12 sm:h-12 text-primary group-hover:text-accent transition-colors duration-300" />
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-semibold text-foreground">{title}</h3>
-                    <p className="text-sm sm:text-base text-muted-foreground group-hover:text-foreground/80 transition-colors">
-                      {description}
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="w-6 h-6 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:text-accent transition-all duration-300 transform group-hover:translate-x-1" />
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-      </main>
-      <footer className="mt-12 md:mt-16 text-center">
-        <p className="text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Flatify AI. All rights reserved.
-        </p>
-      </footer>
+      {/* How it Works Section */}
+      <section className="py-16 px-4 bg-card">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl font-bold mb-12">How It Works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">1. Choose Your Role</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>Select if you're a small business owner, designer, or using an image.</CardDescription>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">2. Provide Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>Enter your business name, description, and optional preferences.</CardDescription>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">3. Generate & Refine</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>Our AI creates logo options. Refine until it's perfect!</CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-16 px-4 bg-secondary/30">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl font-bold mb-12">What Our Users Say</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground italic mb-4">"Flatify AI made getting a professional logo so easy! Saved me so much time and money."</p>
+                <p className="font-semibold">- Happy Business Owner</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground italic mb-4">"A fantastic tool for designers to quickly generate concepts. The AI refinement is a game-changer."</p>
+                <p className="font-semibold">- Creative Freelancer</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+       <section className="py-16 px-4 text-center bg-primary text-primary-foreground">
+        <div className="container mx-auto max-w-2xl">
+          <h2 className="text-3xl font-bold mb-6">Ready to Create Your Logo?</h2>
+          <p className="text-lg mb-8">
+            Join thousands of businesses and designers using Flatify AI to bring their brand to life.
+          </p>
+           <Link href="/role-select" passHref>
+            <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
+              Start Generating Now
+            </Button>
+          </Link>
+        </div>
+      </section>
+
     </div>
   );
 }

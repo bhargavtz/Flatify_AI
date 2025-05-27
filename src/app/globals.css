@@ -83,11 +83,22 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
+  html {
+    margin: 0;
+    padding: 0;
   }
   body {
+    margin: 0;
+    padding: 0;
     @apply bg-background text-foreground;
-    /* Removed explicit font-family to allow Next/Font to correctly apply Geist */
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  /* Ensure no extra space above navigation bar */
+  header {
+    margin-top: 0;
+    padding-top: 0;
   }
 }
