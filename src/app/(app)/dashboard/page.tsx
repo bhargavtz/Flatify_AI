@@ -9,9 +9,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, History, AlertCircle, Palette, Edit3, Sparkles, ImageOff, Download } from 'lucide-react';
+import { LayoutDashboard, History, AlertCircle, Palette, Edit3, Sparkles, ImageOff, Download, Trash2, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 
 interface NoviceGeneration {
   _id: string;
@@ -57,6 +58,10 @@ export default function DashboardPage() {
   const [isLoadingNovice, setIsLoadingNovice] = useState(true);
   const [isLoadingProfessional, setIsLoadingProfessional] = useState(true);
   const [isLoadingImageEditor, setIsLoadingImageEditor] = useState(true);
+
+  // State for delete confirmation dialogs
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'novice' | 'professional' | 'imageEditor' | 'textPrompt' } | null>(null);
 
   const fetchAllData = async (userId: string) => {
     setIsLoadingHistory(true);
@@ -124,6 +129,68 @@ export default function DashboardPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoaded, isSignedIn]); // Removed toast from deps
+
+  const handleDeleteConfirmation = (id: string, type: 'novice' | 'professional' | 'imageEditor' | 'textPrompt') => {
+    setItemToDelete({ id, type });
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete || !user?.id) return;
+
+    setIsDeleteConfirmOpen(false);
+    const { id, type } = itemToDelete;
+    let endpoint = '';
+    let successMessage = '';
+    let errorMessage = '';
+
+    switch (type) {
+      case 'novice':
+        endpoint = `/api/generations/novice?id=${id}&userId=${user.id}`;
+        successMessage = 'Novice logo deleted successfully.';
+        errorMessage = 'Failed to delete novice logo.';
+        break;
+      case 'professional':
+        endpoint = `/api/generations/professional?id=${id}&userId=${user.id}`;
+        successMessage = 'Professional logo deleted successfully.';
+        errorMessage = 'Failed to delete professional logo.';
+        break;
+      case 'imageEditor':
+        endpoint = `/api/generations/image-editor?id=${id}&userId=${user.id}`;
+        successMessage = 'Image-based logo deleted successfully.';
+        errorMessage = 'Failed to delete image-based logo.';
+        break;
+      case 'textPrompt':
+        endpoint = `/api/user/prompt-history?id=${id}&userId=${user.id}`; // Assuming text prompts have an ID
+        successMessage = 'Text prompt deleted successfully.';
+        errorMessage = 'Failed to delete text prompt.';
+        break;
+    }
+
+    try {
+      const res = await fetch(endpoint, { method: 'DELETE' });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({ title: "Success", description: successMessage });
+        // Update state to remove the deleted item
+        if (type === 'novice') setNoviceGenerations(prev => prev.filter(item => item._id !== id));
+        else if (type === 'professional') setProfessionalGenerations(prev => prev.filter(item => item._id !== id));
+        else if (type === 'imageEditor') setImageEditorGenerations(prev => prev.filter(item => item._id !== id));
+        else if (type === 'textPrompt') {
+          // For text prompts, the 'id' is actually the prompt string itself
+          setTextPromptHistory(prev => prev.filter((prompt, index) => index.toString() !== id));
+        }
+      } else {
+        toast({ title: "Error", description: data.message || errorMessage, variant: "destructive" });
+      }
+    } catch (e) {
+      console.error(`Error deleting ${type} item:`, e);
+      toast({ title: "Network Error", description: `Could not delete ${type} item.`, variant: "destructive" });
+    } finally {
+      setItemToDelete(null);
+    }
+  };
 
   const downloadLogo = (logoDataUri: string, filenamePrefix: string = "logo") => {
     const link = document.createElement('a');
@@ -218,9 +285,17 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardFooter className="p-3 flex justify-between items-center text-xs text-muted-foreground border-t">
                               <span>{format(new Date(item.createdAt), "MMM d, yyyy")}</span>
-                              <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, item.businessName)} title="Download Logo">
-                                <Download className="w-4 h-4" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Novice Logo: ${item._id}`)} title="Edit Logo">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(item._id, 'novice')} title="Delete Logo">
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, item.businessName)} title="Download Logo">
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </CardFooter>
                           </Card>
                         ))}
@@ -254,9 +329,17 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardFooter className="p-3 flex justify-between items-center text-xs text-muted-foreground border-t">
                               <span>{format(new Date(item.createdAt), "MMM d, yyyy")}</span>
-                              <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, "pro_logo")} title="Download Logo">
-                                <Download className="w-4 h-4" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Pro Logo: ${item._id}`)} title="Edit Logo">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(item._id, 'professional')} title="Delete Logo">
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, "pro_logo")} title="Download Logo">
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </CardFooter>
                           </Card>
                         ))}
@@ -293,9 +376,17 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardFooter className="p-3 flex justify-between items-center text-xs text-muted-foreground border-t">
                               <span>{format(new Date(item.createdAt), "MMM d, yyyy")}</span>
-                               <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, item.businessName)} title="Download Logo">
-                                <Download className="w-4 h-4" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Image Editor Logo: ${item._id}`)} title="Edit Logo">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(item._id, 'imageEditor')} title="Delete Logo">
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, item.businessName)} title="Download Logo">
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </CardFooter>
                           </Card>
                         ))}
@@ -309,7 +400,7 @@ export default function DashboardPage() {
                 <section>
                   <div className="flex items-center gap-2 mb-4">
                     <History className="w-7 h-7 text-accent" />
-                    <h2 className="text-2xl font-semibold">Text Prompt History (Pro)</h2>
+                    <h2 className="text-2xl font-semibold">Text Prompt History</h2>
                   </div>
                   {textPromptHistory.length === 0 ? (
                     <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg bg-card">
@@ -322,9 +413,17 @@ export default function DashboardPage() {
                         {textPromptHistory.map((prompt, index) => (
                           <li 
                             key={index} 
-                            className="p-3.5 bg-background border rounded-md shadow-sm hover:shadow-md transition-shadow"
+                            className="p-3.5 bg-background border rounded-md shadow-sm hover:shadow-md transition-shadow flex justify-between items-center"
                           >
-                            <p className="text-sm text-foreground leading-relaxed">{prompt}</p>
+                            <p className="text-sm text-foreground leading-relaxed flex-grow">{prompt}</p>
+                            <div className="flex gap-1 ml-2">
+                              <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Text Prompt: ${prompt}`)} title="Edit Prompt">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(index.toString(), 'textPrompt')} title="Delete Prompt">
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -336,6 +435,13 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+      <DeleteConfirmationDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={`Confirm Deletion of ${itemToDelete?.type === 'textPrompt' ? 'Prompt' : 'Logo'}`}
+        description={`Are you sure you want to delete this ${itemToDelete?.type === 'textPrompt' ? 'prompt' : 'logo'}? This action cannot be undone.`}
+      />
     </div>
   );
 }

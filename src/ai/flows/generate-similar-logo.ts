@@ -19,6 +19,9 @@ const GenerateSimilarLogoInputSchema = z.object({
     ),
   businessName: z.string().describe('The name of the business for the new logo.'),
   businessDescription: z.string().describe('A brief description of the business to guide the new logo design.'),
+  colorPalette: z.string().optional().describe('Optional: Desired color palette for the logo (e.g., "vibrant", "monochrome", "pastel").'),
+  fontStyle: z.string().optional().describe('Optional: Desired font style for the logo text (e.g., "modern", "classic", "handwritten").'),
+  logoShape: z.string().optional().describe('Optional: Desired overall shape or layout for the logo (e.g., "circle", "square", "abstract").'),
 });
 export type GenerateSimilarLogoInput = z.infer<typeof GenerateSimilarLogoInputSchema>;
 
@@ -42,12 +45,24 @@ const generateSimilarLogoFlow = ai.defineFlow(
     outputSchema: GenerateSimilarLogoOutputSchema,
   },
   async (input) => {
+    let promptText = `Analyze the provided image. Then, generate a *new* flat design logo for a business named "${input.businessName}". This new logo should be conceptually inspired by the style, elements, or feel of the provided image, but tailored to the business description: "${input.businessDescription}". The final output must be a completely new logo, not just a modification of the input image. Adhere to flat design principles: minimalism, bold geometric shapes, vibrant colors, and clean typography, avoiding gradients or 3D effects.`;
+
+    if (input.colorPalette) {
+      promptText += ` Use a ${input.colorPalette} color palette.`;
+    }
+    if (input.fontStyle) {
+      promptText += ` The font style should be ${input.fontStyle}.`;
+    }
+    if (input.logoShape) {
+      promptText += ` The logo should have a ${input.logoShape} shape.`;
+    }
+
     const {media} = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp', // IMPORTANT: Image generation capable model
       prompt: [
         {media: {url: input.sourceImageUri}},
         {
-          text: `Analyze the provided image. Then, generate a *new* flat design logo for a business named "${input.businessName}". This new logo should be conceptually inspired by the style, elements, or feel of the provided image, but tailored to the business description: "${input.businessDescription}". The final output must be a completely new logo, not just a modification of the input image. Adhere to flat design principles: minimalism, bold geometric shapes, vibrant colors, and clean typography, avoiding gradients or 3D effects.`
+          text: promptText
         },
       ],
       config: {

@@ -10,10 +10,10 @@ Flatify AI is a cutting-edge web application designed to empower users with AI-d
 *   **Multiple Generation Modes**:
     *   **Novice Mode**: Simplified interface for quick and easy logo creation, ideal for beginners.
     *   **Professional Mode**: Advanced controls and options for experienced designers seeking precise customization.
-    *   **Image Editor**: Tools for refining generated logos or editing other images, including features like background removal, color adjustments, and more.
+    *   **Image Editor**: Upload an image and generate a new logo inspired by it. Includes features like AI-powered suggestions for business names/descriptions, logo refinement, and social sharing options.
 *   **Logo Refinement**: Iterate on generated logos by providing additional prompts to refine style, elements, and overall appearance.
+*   **Dashboard & History Management**: View and manage all your generated logos (Novice, Professional, Image-Based) and text prompt history. Easily download or delete past creations.
 *   **User Authentication**: Secure user login and signup powered by Clerk for personalized experiences and prompt history management.
-*   **Prompt History**: Keep track of past logo generation prompts and their results for easy access and re-use.
 *   **Responsive Design**: A seamless user experience across various devices, from desktops to mobile phones.
 
 ## 💻 Technologies Used
@@ -21,7 +21,7 @@ Flatify AI is a cutting-edge web application designed to empower users with AI-d
 *   **Frontend**: Next.js, React, Tailwind CSS, Shadcn UI
 *   **Backend**: Next.js API Routes
 *   **Authentication**: Clerk
-*   **AI/ML**: Genkit, Google AI (likely for model integration)
+*   **AI/ML**: Genkit (for orchestrating AI flows), Google AI (for model integration, e.g., `generate-initial-logo`, `generate-similar-logo`, `refine-logo-prompt` flows)
 *   **Database**: MongoDB (for prompt history and user data)
 *   **Deployment**: Google Cloud Platform (indicated by `apphosting.yaml`)
 

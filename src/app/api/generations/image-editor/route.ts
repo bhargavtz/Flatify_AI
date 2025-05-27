@@ -35,6 +35,38 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const userId = searchParams.get('userId');
+
+    if (!id || !userId) {
+      return NextResponse.json({ success: false, message: 'ID and User ID are required.' }, { status: 400 });
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+
+    const result = await db.collection('image_editor_generations').deleteOne({
+      _id: new ObjectId(id),
+      userId: userId, // userId is stored as a string in this collection
+    });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ success: false, message: 'Image Editor logo not found or user not authorized.' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Image Editor logo deleted successfully.' });
+  } catch (error) {
+    console.error("Delete Image Editor Generation API error:", error);
+    if (error instanceof Error && error.name === 'MongoNetworkError') {
+        return NextResponse.json({ success: false, message: 'Database connection error.' }, { status: 503 });
+    }
+    return NextResponse.json({ success: false, message: 'An internal server error occurred.' }, { status: 500 });
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

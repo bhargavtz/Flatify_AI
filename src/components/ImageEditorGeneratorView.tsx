@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, ChangeEvent } from 'react';
@@ -11,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { generateSimilarLogo, type GenerateSimilarLogoInput } from '@/ai/flows/generate-similar-logo';
 import { useToast } from '@/hooks/use-toast';
 import { LogoDisplayArea } from './LogoDisplayArea';
-import { UploadCloud, Wand2, Save, ImageUp } from 'lucide-react';
+import { UploadCloud, Wand2, Save, ImageUp, Sparkles, Download, Twitter, Facebook, Linkedin, Brush } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -22,9 +21,16 @@ export function ImageEditorGeneratorView() {
   
   const [businessName, setBusinessName] = useState('');
   const [businessDescription, setBusinessDescription] = useState('');
+  const [suggestedBusinessName, setSuggestedBusinessName] = useState<string | null>(null);
+  const [suggestedBusinessDescription, setSuggestedBusinessDescription] = useState<string | null>(null);
+  const [selectedColorPalette, setSelectedColorPalette] = useState<string>('');
+  const [selectedFontStyle, setSelectedFontStyle] = useState<string>('');
+  const [selectedLogoShape, setSelectedLogoShape] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [generatedLogoSrc, setGeneratedLogoSrc] = useState<string | null>(null);
+  const [refinementPrompt, setRefinementPrompt] = useState<string>('');
   
   const { toast } = useToast();
   const { user } = useUser();
@@ -57,6 +63,43 @@ export function ImageEditorGeneratorView() {
     }
   };
 
+  const handleSuggest = async (type: 'name' | 'description') => {
+    if (!sourceImageDataUri) {
+      toast({ title: "No Image", description: "Please upload a source image to get suggestions.", variant: "destructive" });
+      return;
+    }
+
+    setIsSuggesting(true);
+    try {
+      const response = await fetch('/api/suggestions/image-editor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceImageUri: sourceImageDataUri,
+          type,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        if (type === 'name') {
+          setSuggestedBusinessName(data.suggestion);
+          setBusinessName(data.suggestion); // Also set it as the current value
+        } else {
+          setSuggestedBusinessDescription(data.suggestion);
+          setBusinessDescription(data.suggestion); // Also set it as the current value
+        }
+        toast({ title: "Suggestion Generated!", description: `New ${type} suggestion available.` });
+      } else {
+        toast({ title: "Suggestion Error", description: data.message || "Failed to get suggestion.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error getting suggestion:", error);
+      toast({ title: "Suggestion Error", description: "An unexpected error occurred while getting suggestion.", variant: "destructive" });
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!sourceImageDataUri) {
@@ -79,6 +122,9 @@ export function ImageEditorGeneratorView() {
       sourceImageUri: sourceImageDataUri,
       businessName,
       businessDescription,
+      colorPalette: selectedColorPalette,
+      fontStyle: selectedFontStyle,
+      logoShape: selectedLogoShape,
     };
 
     try {
@@ -131,6 +177,84 @@ export function ImageEditorGeneratorView() {
     }
   };
 
+  const handleDownloadLogo = () => {
+    if (generatedLogoSrc) {
+      const link = document.createElement('a');
+      link.href = generatedLogoSrc;
+      link.download = `${businessName || 'generated_logo'}.png`; // Default name or use business name
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: "Download Started", description: "Your logo download should begin shortly." });
+    } else {
+      toast({ title: "No Logo to Download", description: "Please generate a logo first.", variant: "destructive" });
+    }
+  };
+
+  const handleRefineLogo = async () => {
+    if (!generatedLogoSrc) {
+      toast({ title: "No Logo to Refine", description: "Please generate a logo first.", variant: "destructive" });
+      return;
+    }
+    if (!refinementPrompt.trim()) {
+      toast({ title: "Missing Refinement", description: "Please enter a refinement prompt.", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/refine-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          logoDataUri: generatedLogoSrc,
+          refinementPrompt,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setGeneratedLogoSrc(data.refinedLogoDataUri);
+        toast({ title: "Logo Refined!", description: "Your logo has been refined." });
+        setRefinementPrompt(''); // Clear refinement prompt after successful refinement
+      } else {
+        toast({ title: "Refinement Error", description: data.message || "Failed to refine logo.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error refining logo:", error);
+      toast({ title: "Refinement Error", description: "An unexpected error occurred during refinement.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleShareLogo = (platform: 'twitter' | 'facebook' | 'linkedin') => {
+    if (!generatedLogoSrc) {
+      toast({ title: "No Logo to Share", description: "Please generate a logo first.", variant: "destructive" });
+      return;
+    }
+
+    const logoUrl = encodeURIComponent(generatedLogoSrc);
+    const text = encodeURIComponent(`Check out this AI-generated logo for "${businessName}"!`);
+    let shareUrl = '';
+
+    switch (platform) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${logoUrl}`;
+        break;
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${logoUrl}&quote=${text}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${logoUrl}&title=${text}`;
+        break;
+      default:
+        return;
+    }
+
+    window.open(shareUrl, '_blank');
+    toast({ title: "Sharing...", description: `Opening ${platform} for sharing.` });
+  };
+
 
   return (
     <div className="py-4 px-4 sm:px-6 lg:px-8 w-full">
@@ -179,24 +303,84 @@ export function ImageEditorGeneratorView() {
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="businessNameImage" className="text-sm">Business Name</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="businessNameImage"
+                      value={suggestedBusinessName || businessName}
+                      onChange={(e) => {
+                        setBusinessName(e.target.value);
+                        setSuggestedBusinessName(null); // Clear suggestion if user types
+                      }}
+                      placeholder="e.g., Your New Brand"
+                      required
+                      className="text-sm"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={() => handleSuggest('name')} 
+                      disabled={isSuggesting || !sourceImageDataUri}
+                      title="Suggest Business Name"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="businessDescriptionImage" className="text-sm">Business Description</Label>
+                  <div className="flex items-center gap-2">
+                    <Textarea
+                      id="businessDescriptionImage"
+                      value={suggestedBusinessDescription || businessDescription}
+                      onChange={(e) => {
+                        setBusinessDescription(e.target.value);
+                        setSuggestedBusinessDescription(null); // Clear suggestion if user types
+                      }}
+                      placeholder="Describe what your business does or its style. This will guide the new logo."
+                      required
+                      rows={3}
+                      className="text-sm"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={() => handleSuggest('description')} 
+                      disabled={isSuggesting || !sourceImageDataUri}
+                      title="Suggest Business Description"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="colorPalette" className="text-sm">Color Palette (Optional)</Label>
                   <Input
-                    id="businessNameImage"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    placeholder="e.g., Your New Brand"
-                    required
+                    id="colorPalette"
+                    value={selectedColorPalette}
+                    onChange={(e) => setSelectedColorPalette(e.target.value)}
+                    placeholder="e.g., vibrant, pastel, monochrome"
                     className="text-sm"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="businessDescriptionImage" className="text-sm">Business Description</Label>
-                  <Textarea
-                    id="businessDescriptionImage"
-                    value={businessDescription}
-                    onChange={(e) => setBusinessDescription(e.target.value)}
-                    placeholder="Describe what your business does or its style. This will guide the new logo."
-                    required
-                    rows={3}
+                  <Label htmlFor="fontStyle" className="text-sm">Font Style (Optional)</Label>
+                  <Input
+                    id="fontStyle"
+                    value={selectedFontStyle}
+                    onChange={(e) => setSelectedFontStyle(e.target.value)}
+                    placeholder="e.g., modern, classic, handwritten"
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="logoShape" className="text-sm">Logo Shape (Optional)</Label>
+                  <Input
+                    id="logoShape"
+                    value={selectedLogoShape}
+                    onChange={(e) => setSelectedLogoShape(e.target.value)}
+                    placeholder="e.g., circle, square, abstract"
                     className="text-sm"
                   />
                 </div>
@@ -207,6 +391,32 @@ export function ImageEditorGeneratorView() {
                <h3 className="text-lg font-semibold mb-1 text-center">Generated Logo</h3>
               <LogoDisplayArea logoSrc={generatedLogoSrc} isLoading={isLoading} businessName={businessName} />
             </div>
+
+            {generatedLogoSrc && (
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="refinementPrompt" className="text-sm">Refine Logo (Optional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="refinementPrompt"
+                    value={refinementPrompt}
+                    onChange={(e) => setRefinementPrompt(e.target.value)}
+                    placeholder="e.g., make the colors brighter, add a subtle gradient, change font to serif"
+                    className="text-sm"
+                    disabled={isLoading}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={handleRefineLogo} 
+                    disabled={isLoading || !refinementPrompt.trim()}
+                    title="Refine Logo"
+                  >
+                    <Brush className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-3 py-4">
@@ -219,10 +429,25 @@ export function ImageEditorGeneratorView() {
               Generate Similar Logo
             </Button>
             {user && generatedLogoSrc && (
-              <Button onClick={handleSaveImageEditorGeneration} variant="outline" size="sm" className="w-full sm:w-auto text-base" disabled={isLoading}>
-                <Save className="mr-2 h-4 w-4" />
-                Save Logo
-              </Button>
+              <>
+                <Button onClick={handleSaveImageEditorGeneration} variant="outline" size="sm" className="w-full sm:w-auto text-base" disabled={isLoading}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Logo
+                </Button>
+                <Button onClick={handleDownloadLogo} variant="outline" size="sm" className="w-full sm:w-auto text-base" disabled={isLoading}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Logo
+                </Button>
+                <Button onClick={() => handleShareLogo('twitter')} variant="outline" size="icon" className="text-base" disabled={isLoading} title="Share on Twitter">
+                  <Twitter className="h-4 w-4" />
+                </Button>
+                <Button onClick={() => handleShareLogo('facebook')} variant="outline" size="icon" className="text-base" disabled={isLoading} title="Share on Facebook">
+                  <Facebook className="h-4 w-4" />
+                </Button>
+                <Button onClick={() => handleShareLogo('linkedin')} variant="outline" size="icon" className="text-base" disabled={isLoading} title="Share on LinkedIn">
+                  <Linkedin className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </CardFooter>
         </form>

@@ -83,9 +83,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const promptToDelete = searchParams.get('prompt'); // Get the specific prompt to delete
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'User ID is required.' }, { status: 400 });
+    if (!userId || !promptToDelete) {
+      return NextResponse.json({ success: false, message: 'User ID and prompt to delete are required.' }, { status: 400 });
     }
     if (!ObjectId.isValid(userId)) {
       return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
@@ -93,12 +94,26 @@ export async function DELETE(request: NextRequest) {
 
     const client = await clientPromise;
     const db = client.db();
-    await db.collection('users').updateOne(
+    const usersCollection = db.collection('users');
+
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'User not found.' }, { status: 404 });
+    }
+
+    let currentHistory: string[] = user.promptHistory || [];
+    const updatedHistory = currentHistory.filter(p => p !== promptToDelete);
+
+    if (updatedHistory.length === currentHistory.length) {
+      return NextResponse.json({ success: false, message: 'Prompt not found in history.' }, { status: 404 });
+    }
+
+    await usersCollection.updateOne(
       { _id: new ObjectId(userId) },
-      { $set: { promptHistory: [] } }
+      { $set: { promptHistory: updatedHistory } }
     );
 
-    return NextResponse.json({ success: true, message: 'Prompt history cleared.' });
+    return NextResponse.json({ success: true, message: 'Prompt deleted successfully.', promptHistory: updatedHistory });
 
   } catch (error) {
     console.error("Delete Prompt History API error:", error);

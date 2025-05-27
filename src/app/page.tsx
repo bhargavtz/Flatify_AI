@@ -37,10 +37,10 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl">1. Choose Your Role</CardTitle>
+                <CardTitle className="text-xl">1. Sign Up & Select Role</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>Select if you're a small business owner, designer, or using an image.</CardDescription>
+                <CardDescription>Quickly sign up and choose your role (e.g., Small Business Owner, Freelance Designer).</CardDescription>
               </CardContent>
             </Card>
             <Card>

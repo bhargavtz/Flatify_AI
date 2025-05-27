@@ -1,130 +1,119 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@clerk/nextjs';
-import { useUserRole, type UserRole } from '@/contexts/UserRoleContext';
-import { AppLogo } from '@/components/AppLogo';
-import { ArrowRight, Briefcase, Brush, UploadCloud } from 'lucide-react';
+import { useUserRole } from '@/contexts/UserRoleContext';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
-export default function LandingPage() {
+export default function RoleSelectPage() {
   const router = useRouter();
-  const { setUserRole, userRole, isLoading: isLoadingRole } = useUserRole();
-  const { isSignedIn, isLoaded } = useUser();
+  const { userRole, setUserRole, isLoading: isLoadingRole } = useUserRole();
+  const { isLoaded, isSignedIn } = useUser();
+  const { signOut } = useAuth();
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && !isLoadingRole && userRole) {
+    if (isLoaded && !isSignedIn) {
+      router.push('/login');
+    } else if (isLoaded && isSignedIn && !isLoadingRole && userRole) {
+      // If user is signed in and already has a role, redirect to generate page
       router.push('/generate');
     }
-  }, [isSignedIn, userRole, isLoaded, isLoadingRole, router]);
+  }, [isLoaded, isSignedIn, userRole, isLoadingRole, router]);
 
-  if (!isLoaded || (isSignedIn && isLoadingRole && !userRole)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-        <LoadingSpinner size="xl" />
-      </div>
-    );
-  }
-
-  if (isSignedIn && userRole) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-        <LoadingSpinner size="xl" />
-      </div>
-    );
-  }
-
-  const handleRoleSelection = (role: UserRole) => {
-    if (!role) return;
+  const handleRoleSelect = (role: 'novice' | 'professional' | 'imageEditor') => {
     setUserRole(role);
-
-    if (isSignedIn) {
-      router.push('/generate');
-    } else {
-      // If not signed in, Clerk's components in layout.tsx will prompt login/signup
-      // No need to redirect to a custom login page with intendedRole
-      // The user will be redirected to Clerk's sign-in page if they try to access a protected route
-      // or they can use the Sign In/Sign Up buttons in the header.
-    }
+    router.push('/generate');
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 bg-background selection:bg-accent selection:text-accent-foreground">
-      <header className="mb-10 md:mb-16 text-center">
-        <AppLogo size="lg" className="justify-center mb-2" />
-        <h1 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-          Flat Design Logos, Effortlessly.
-        </h1>
-        <p className="mt-3 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto">
-          Generate unique, professional flat design logos for your business using advanced AI.
-        </p>
-        {isSignedIn && !userRole && (
-          <p className="mt-4 text-md text-primary font-medium">Welcome! Please select your role to continue.</p>
-        )}
-        {!isSignedIn && (
-          <p className="mt-4 text-md text-primary font-medium">Please select a role to get started. You'll be prompted to log in or sign up.</p>
-        )}
-      </header>
+  if (!isLoaded || (isLoaded && isSignedIn && isLoadingRole)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <LoadingSpinner size="xl" />
+      </div>
+    );
+  }
 
-      <main className="w-full max-w-3xl">
-        <Card className="shadow-xl border-2 border-transparent hover:border-primary/20 transition-all duration-300">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl sm:text-3xl text-center font-semibold">Choose Your Path</CardTitle>
-            <CardDescription className="text-center text-md sm:text-base">
-              Select the mode that best fits your creative needs.
+  if (isSignedIn && userRole && !isLoadingRole) {
+    return null; // Already redirected by useEffect
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 p-4">
+      <div className="text-center mb-10">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-4">
+          Select Your Role
+        </h1>
+        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
+          Choose the role that best describes you to get a tailored experience.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full">
+        <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold mb-2">Small Business Owner</CardTitle>
+            <CardDescription>
+              Perfect for entrepreneurs needing a quick, effective logo without design expertise.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:gap-6 p-4 sm:p-6">
-            {[
-              {
-                role: 'novice' as UserRole,
-                icon: Briefcase,
-                title: 'Small Business Owner',
-                description: 'Guided, simple logo creation for your brand.',
-              },
-              {
-                role: 'professional' as UserRole,
-                icon: Brush,
-                title: 'Freelance Designer',
-                description: 'Advanced tools and prompt control for rapid concepts.',
-              },
-              {
-                role: 'imageEditor' as UserRole,
-                icon: UploadCloud,
-                title: 'Image-Based Generator',
-                description: 'Upload an image, get a new logo in a similar style.',
-              },
-            ].map(({ role, icon: Icon, title, description }) => (
-              <Button
-                key={role}
-                variant="outline"
-                size="lg"
-                className="h-auto py-6 sm:py-8 px-6 text-left flex items-center justify-between shadow-md hover:shadow-lg hover:bg-card hover:border-primary/50 focus-visible:ring-primary/50 transition-all duration-300 group"
-                onClick={() => handleRoleSelection(role)}
-              >
-                <div className="flex items-center gap-4 sm:gap-5">
-                  <Icon className="w-10 h-10 sm:w-12 sm:h-12 text-primary group-hover:text-accent transition-colors duration-300" />
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-semibold text-foreground">{title}</h3>
-                    <p className="text-sm sm:text-base text-muted-foreground group-hover:text-foreground/80 transition-colors">
-                      {description}
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="w-6 h-6 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:text-accent transition-all duration-300 transform group-hover:translate-x-1" />
-              </Button>
-            ))}
+          <CardContent className="flex-grow flex items-end">
+            <Button 
+              size="lg" 
+              onClick={() => handleRoleSelect('novice')}
+              className="w-full"
+            >
+              I'm a Business Owner
+            </Button>
           </CardContent>
         </Card>
-      </main>
-      <footer className="mt-12 md:mt-16 text-center">
-        <p className="text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Flatify AI. All rights reserved.
-        </p>
-      </footer>
+
+        <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold mb-2">Freelance Designer</CardTitle>
+            <CardDescription>
+              Ideal for designers looking to generate concepts and refine them with AI assistance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow flex items-end">
+            <Button 
+              size="lg" 
+              onClick={() => handleRoleSelect('professional')}
+              className="w-full"
+            >
+              I'm a Designer
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold mb-2">Image-Based Generator</CardTitle>
+            <CardDescription>
+              For users who prefer to generate logos based on existing images or visual inputs.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow flex items-end">
+            <Button 
+              size="lg" 
+              onClick={() => handleRoleSelect('imageEditor')}
+              className="w-full"
+            >
+              Image-Based
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Button 
+        variant="link" 
+        onClick={() => signOut(() => router.push('/'))} 
+        className="mt-8 text-muted-foreground hover:text-foreground"
+      >
+        Not {isLoaded && isSignedIn ? `(${useUser().user?.emailAddresses[0]?.emailAddress})` : ''}? Sign Out
+      </Button>
     </div>
   );
 }
