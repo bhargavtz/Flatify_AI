@@ -7,13 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select components
 import { generateInitialLogo, type GenerateInitialLogoInput } from '@/ai/flows/generate-initial-logo';
 import { useToast } from '@/hooks/use-toast';
 import { LogoDisplayArea } from './LogoDisplayArea';
-import { Wand2, Palette, Info, Save } from 'lucide-react';
+import { Wand2, Palette, Info, Save, Type, Lightbulb } from 'lucide-react'; // Added Type and Lightbulb icons
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useUser } from '@clerk/nextjs';
 import { LoadingSpinner } from './LoadingSpinner';
+import { generateSuggestions, type GenerateSuggestionsInput } from '@/ai/flows/generate-suggestions'; // Import the new AI flow
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Import Popover components
 
 const SimpleColorPicker = ({ label, color, setColor }: { label: string, color: string, setColor: (color: string) => void }) => (
   <div className="flex items-center gap-2">
@@ -35,10 +38,21 @@ export function NoviceGeneratorView() {
   const [businessDescription, setBusinessDescription] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#3F51B5');
   const [secondaryColor, setSecondaryColor] = useState('#7E57C2');
+  const [selectedFont, setSelectedFont] = useState('Arial');
+  const [selectedLayout, setSelectedLayout] = useState('Icon Above Text'); // New state for layout selection
 
   const [isLoading, setIsLoading] = useState(false);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [currentFullDescription, setCurrentFullDescription] = useState(''); // To store description used for generation
+
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
+  const [sloganSuggestions, setSloganSuggestions] = useState<string[]>([]);
+  const [colorSuggestions, setColorSuggestions] = useState<string[]>([]);
+  const [iconSuggestions, setIconSuggestions] = useState<string[]>([]);
+
+  const [isSuggesting, setIsSuggesting] = useState(false);
+
+  const availableFonts = ['Arial', 'Verdana', 'Helvetica', 'Times New Roman', 'Georgia', 'Courier New', 'Brush Script MT', 'Impact']; // Example fonts
 
   const { toast } = useToast();
   const { user } = useUser();
@@ -61,6 +75,12 @@ export function NoviceGeneratorView() {
     if (primaryColor || secondaryColor) {
       fullDescription += ` The logo should feature colors like ${primaryColor} (primary) and ${secondaryColor} (secondary).`;
     }
+    if (selectedFont) {
+      fullDescription += ` Use the font style similar to ${selectedFont}.`;
+    }
+    if (selectedLayout) {
+      fullDescription += ` The logo layout should be: ${selectedLayout}.`;
+    }
     fullDescription += " Ensure the logo is a flat design, simple, modern, and professional.";
     setCurrentFullDescription(fullDescription); // Save for potential saving
 
@@ -78,6 +98,38 @@ export function NoviceGeneratorView() {
       toast({ title: "Error", description: "Failed to generate logo. Please try again.", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateSuggestions = async (type: GenerateSuggestionsInput['suggestionType']) => {
+    if (!businessName.trim()) {
+      toast({ title: "Uh oh!", description: "Business name is required to generate suggestions.", variant: "destructive" });
+      return;
+    }
+
+    setIsSuggesting(true);
+    try {
+      const result = await generateSuggestions({ businessName, suggestionType: type });
+      switch (type) {
+        case 'description':
+          setDescriptionSuggestions(result.suggestions);
+          break;
+        case 'slogan':
+          setSloganSuggestions(result.suggestions);
+          break;
+        case 'color':
+          setColorSuggestions(result.suggestions);
+          break;
+        case 'icon':
+          setIconSuggestions(result.suggestions);
+          break;
+      }
+      toast({ title: "Suggestions Generated!", description: `New ${type} suggestions are available.` });
+    } catch (error) {
+      console.error(`Error generating ${type} suggestions:`, error);
+      toast({ title: "Error", description: `Failed to generate ${type} suggestions.`, variant: "destructive" });
+    } finally {
+      setIsSuggesting(false);
     }
   };
 
@@ -185,6 +237,66 @@ export function NoviceGeneratorView() {
                   rows={3}
                   className="text-sm min-h-[80px]"
                 />
+                <div className="flex gap-2 mt-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full text-xs" disabled={isSuggesting || !businessName.trim()} onClick={() => handleGenerateSuggestions('description')}>
+                        {isSuggesting ? <LoadingSpinner size="sm" className="mr-2" /> : <Lightbulb className="mr-2 h-3 w-3" />}
+                        Suggest Descriptions
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">Description Suggestions</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Click to use a suggestion.
+                          </p>
+                        </div>
+                        {descriptionSuggestions.length > 0 ? (
+                          <div className="space-y-2">
+                            {descriptionSuggestions.map((desc, index) => (
+                              <Button key={index} variant="ghost" className="w-full justify-start h-auto text-wrap text-left" onClick={() => setBusinessDescription(desc)}>
+                                {desc}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No suggestions yet. Click "Suggest Descriptions" to generate some!</p>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full text-xs" disabled={isSuggesting || !businessName.trim()} onClick={() => handleGenerateSuggestions('slogan')}>
+                        {isSuggesting ? <LoadingSpinner size="sm" className="mr-2" /> : <Lightbulb className="mr-2 h-3 w-3" />}
+                        Suggest Slogans
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">Slogan Suggestions</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Click to use a suggestion.
+                          </p>
+                        </div>
+                        {sloganSuggestions.length > 0 ? (
+                          <div className="space-y-2">
+                            {sloganSuggestions.map((slogan, index) => (
+                              <Button key={index} variant="ghost" className="w-full justify-start h-auto text-wrap text-left" onClick={() => setBusinessDescription(slogan)}>
+                                {slogan}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No suggestions yet. Click "Suggest Slogans" to generate some!</p>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
 
@@ -198,6 +310,122 @@ export function NoviceGeneratorView() {
                 <SimpleColorPicker label="Secondary Color" color={secondaryColor} setColor={setSecondaryColor} />
               </div>
                <p className="text-xs text-muted-foreground">These colors will guide the AI in generating your logo.</p>
+              <div className="flex gap-2 mt-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full text-xs" disabled={isSuggesting || !businessName.trim()} onClick={() => handleGenerateSuggestions('color')}>
+                      {isSuggesting ? <LoadingSpinner size="sm" className="mr-2" /> : <Lightbulb className="mr-2 h-3 w-3" />}
+                      Suggest Colors
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium leading-none">Color Suggestions</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Click to use a suggestion.
+                        </p>
+                      </div>
+                      {colorSuggestions.length > 0 ? (
+                        <div className="space-y-2">
+                          {colorSuggestions.map((color, index) => (
+                            <div key={index} className="flex items-center justify-between gap-2">
+                              <span className="flex items-center gap-2 text-sm">
+                                <span className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></span>
+                                {color}
+                              </span>
+                              <div className="flex gap-1">
+                                <Button variant="outline" size="xs" onClick={() => setPrimaryColor(color)}>Primary</Button>
+                                <Button variant="outline" size="xs" onClick={() => setSecondaryColor(color)}>Secondary</Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No suggestions yet. Click "Suggest Colors" to generate some!</p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full text-xs" disabled={isSuggesting || !businessName.trim()} onClick={() => handleGenerateSuggestions('icon')}>
+                      {isSuggesting ? <LoadingSpinner size="sm" className="mr-2" /> : <Lightbulb className="mr-2 h-3 w-3" />}
+                      Suggest Icons
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium leading-none">Icon Suggestions</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Click to add a suggestion to your description.
+                        </p>
+                      </div>
+                      {iconSuggestions.length > 0 ? (
+                        <div className="space-y-2">
+                          {iconSuggestions.map((icon, index) => (
+                            <Button key={index} variant="ghost" className="w-full justify-start h-auto text-wrap text-left" onClick={() => setBusinessDescription(prev => `${prev.trim()} ${icon.trim()}`)}>
+                              {icon}
+                            </Button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No suggestions yet. Click "Suggest Icons" to generate some!</p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="space-y-2 p-3 border rounded-md bg-secondary/30">
+              <div className="flex items-center gap-2">
+                <Type className="w-4 h-4 text-primary" />
+                <h4 className="font-medium text-sm">Choose Your Font (Optional)</h4>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="font-select" className="text-sm">Font Style:</Label>
+                  <Select onValueChange={setSelectedFont} defaultValue={selectedFont}>
+                    <SelectTrigger id="font-select" className="w-[180px] text-sm">
+                      <SelectValue placeholder="Select a font" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableFonts.map((font) => (
+                        <SelectItem key={font} value={font} className="text-sm">
+                          {font}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Select a font style to influence the logo text.</p>
+            </div>
+
+            <div className="space-y-2 p-3 border rounded-md bg-secondary/30">
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-4 h-4 text-primary" /> {/* Reusing Wand2 for layout, consider a more specific icon if available */}
+                <h4 className="font-medium text-sm">Choose Your Layout (Optional)</h4>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="layout-select" className="text-sm">Layout Style:</Label>
+                  <Select onValueChange={setSelectedLayout} defaultValue={selectedLayout}>
+                    <SelectTrigger id="layout-select" className="w-[220px] text-sm">
+                      <SelectValue placeholder="Select a layout" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Icon Above Text">Icon Above Text</SelectItem>
+                      <SelectItem value="Icon Left of Text">Icon Left of Text</SelectItem>
+                      <SelectItem value="Text Only">Text Only</SelectItem>
+                      <SelectItem value="Icon Only">Icon Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Choose how the icon and text are arranged in your logo.</p>
             </div>
 
             <div className="pt-2">

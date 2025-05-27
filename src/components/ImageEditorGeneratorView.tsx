@@ -10,9 +10,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { generateSimilarLogo, type GenerateSimilarLogoInput } from '@/ai/flows/generate-similar-logo';
 import { useToast } from '@/hooks/use-toast';
 import { LogoDisplayArea } from './LogoDisplayArea';
-import { UploadCloud, Wand2, Save, ImageUp, Sparkles, Download, Twitter, Facebook, Linkedin, Brush } from 'lucide-react';
+import { UploadCloud, Wand2, Save, ImageUp, Sparkles, Download, Twitter, Facebook, Linkedin, Brush, Lightbulb } from 'lucide-react'; // Added Lightbulb icon
 import { useUser } from '@clerk/nextjs';
 import { LoadingSpinner } from './LoadingSpinner';
+import { generateSuggestions, type GenerateSuggestionsInput } from '@/ai/flows/generate-suggestions'; // Import the new AI flow
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Import Popover components
 
 export function ImageEditorGeneratorView() {
   const [sourceImageFile, setSourceImageFile] = useState<File | null>(null);
@@ -31,6 +33,8 @@ export function ImageEditorGeneratorView() {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [generatedLogoSrc, setGeneratedLogoSrc] = useState<string | null>(null);
   const [refinementPrompt, setRefinementPrompt] = useState<string>('');
+
+  const [colorSuggestions, setColorSuggestions] = useState<string[]>([]); // New state for color suggestions
   
   const { toast } = useToast();
   const { user } = useUser();
@@ -95,6 +99,32 @@ export function ImageEditorGeneratorView() {
     } catch (error) {
       console.error("Error getting suggestion:", error);
       toast({ title: "Suggestion Error", description: "An unexpected error occurred while getting suggestion.", variant: "destructive" });
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleGenerateSuggestions = async (type: GenerateSuggestionsInput['suggestionType']) => {
+    if (!businessName.trim()) {
+      toast({ title: "Uh oh!", description: "Business name is required to generate suggestions.", variant: "destructive" });
+      return;
+    }
+
+    setIsSuggesting(true);
+    try {
+      const result = await generateSuggestions({ businessName, suggestionType: type });
+      switch (type) {
+        case 'color':
+          setColorSuggestions(result.suggestions);
+          break;
+        default:
+          // Handle other suggestion types if needed in the future for this view
+          break;
+      }
+      toast({ title: "Suggestions Generated!", description: `New ${type} suggestions are available.` });
+    } catch (error) {
+      console.error(`Error generating ${type} suggestions:`, error);
+      toast({ title: "Error", description: `Failed to generate ${type} suggestions.`, variant: "destructive" });
     } finally {
       setIsSuggesting(false);
     }
@@ -356,13 +386,44 @@ export function ImageEditorGeneratorView() {
                 </div>
                 <div>
                   <Label htmlFor="colorPalette" className="text-sm">Color Palette (Optional)</Label>
-                  <Input
-                    id="colorPalette"
-                    value={selectedColorPalette}
-                    onChange={(e) => setSelectedColorPalette(e.target.value)}
-                    placeholder="e.g., vibrant, pastel, monochrome"
-                    className="text-sm"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="colorPalette"
+                      value={selectedColorPalette}
+                      onChange={(e) => setSelectedColorPalette(e.target.value)}
+                      placeholder="e.g., vibrant, pastel, monochrome"
+                      className="text-sm"
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="icon" disabled={isSuggesting || !businessName.trim()} onClick={() => handleGenerateSuggestions('color')} title="Suggest Colors">
+                          {isSuggesting ? <LoadingSpinner size="sm" /> : <Lightbulb className="h-4 w-4" />}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <h4 className="font-medium leading-none">Color Suggestions</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Click to use a suggestion.
+                            </p>
+                          </div>
+                          {colorSuggestions.length > 0 ? (
+                            <div className="space-y-2 grid grid-cols-2 gap-2">
+                              {colorSuggestions.map((color, index) => (
+                                <Button key={index} variant="ghost" className="justify-start h-auto text-wrap text-left" onClick={() => setSelectedColorPalette(color)}>
+                                  <span className="w-4 h-4 rounded-full mr-2" style={{ backgroundColor: color }}></span>
+                                  {color}
+                                </Button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No suggestions yet. Click "Suggest Colors" to generate some!</p>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="fontStyle" className="text-sm">Font Style (Optional)</Label>
