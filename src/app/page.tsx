@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import Link from 'next/link'
 import { useUserRole } from '@/contexts/UserRoleContext'
+import { UserButton } from '@clerk/nextjs'
 
 export default function FlatifyAILanding() {
   const { userRole, isLoading } = useUserRole()
@@ -117,10 +118,7 @@ export default function FlatifyAILanding() {
                 <div className="w-20 h-8 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div> // Placeholder while loading
               ) : userRole ? (
                 <>
-                  {/* Placeholder for User Profile */}
-                  <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    U
-                  </div>
+                  <UserButton afterSignOutUrl="/" />
                   <Link href="/dashboard">
                     <Button variant="outline" size="sm">
                       Dashboard
@@ -134,9 +132,11 @@ export default function FlatifyAILanding() {
                       Sign In
                     </Button>
                   </Link>
-                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                    Get Started Free
-                  </Button>
+                  <Link href="/signup">
+                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+                      Get Started Free
+                    </Button>
+                  </Link>
                 </>
               )}
             </div>
@@ -176,10 +176,7 @@ export default function FlatifyAILanding() {
                     <div className="w-20 h-8 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div> // Placeholder while loading
                   ) : userRole ? (
                     <>
-                      {/* Placeholder for User Profile */}
-                      <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        U
-                      </div>
+                      <UserButton afterSignOutUrl="/" />
                       <Link href="/dashboard">
                         <Button variant="outline" size="sm">
                           Dashboard
@@ -193,9 +190,11 @@ export default function FlatifyAILanding() {
                           Sign In
                         </Button>
                       </Link>
-                      <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                        Get Started Free
-                      </Button>
+                      <Link href="/signup">
+                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+                          Get Started Free
+                        </Button>
+                      </Link>
                     </>
                   )}
                 </div>
