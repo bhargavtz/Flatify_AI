@@ -29,7 +29,7 @@ export default function GeneratePage() {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-0 overflow-x-hidden">
       {userRole === 'novice' ? <NoviceGeneratorView /> : 
        userRole === 'professional' ? <ProfessionalGeneratorView /> :
        userRole === 'imageEditor' ? <ImageEditorGeneratorView /> : // Added condition

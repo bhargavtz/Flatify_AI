@@ -2,6 +2,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { requireSignedIn } from '@/lib/auth-api';
 
 const GenerateSuggestionsInputSchema = z.object({
   businessName: z.string().describe('The name of the business.'),
@@ -15,6 +16,7 @@ const GenerateSuggestionsOutputSchema = z.object({
 export type GenerateSuggestionsOutput = z.infer<typeof GenerateSuggestionsOutputSchema>;
 
 export async function generateSuggestions(input: GenerateSuggestionsInput): Promise<GenerateSuggestionsOutput> {
+  await requireSignedIn();
   return generateSuggestionsFlow(input);
 }
 

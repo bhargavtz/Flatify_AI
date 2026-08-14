@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { requireSignedIn } from '@/lib/auth-api';
 
 const GenerateSimilarLogoInputSchema = z.object({
   sourceImageUri: z
@@ -35,6 +36,7 @@ const GenerateSimilarLogoOutputSchema = z.object({
 export type GenerateSimilarLogoOutput = z.infer<typeof GenerateSimilarLogoOutputSchema>;
 
 export async function generateSimilarLogo(input: GenerateSimilarLogoInput): Promise<GenerateSimilarLogoOutput> {
+  await requireSignedIn();
   return generateSimilarLogoFlow(input);
 }
 

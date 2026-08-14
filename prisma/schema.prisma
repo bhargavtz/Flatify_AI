@@ -1,0 +1,153 @@
+// Flatify Studio AI - High-Concurrency PostgreSQL Schema (Prisma)
+// Optimized for 50,000+ Concurrent Online Users with PgBouncer Connection Pooling
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  PRO
+  ENTERPRISE
+  ADMIN
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ModelEngine {
+  FLUX_1_ULTRA
+  MIDJOURNEY_V6
+  SORA_VIDEO_GEN2
+  RUNWAY_GEN3
+  FLATIFY_VECTOR_PRO
+  MESHY_3D
+}
+
+enum CreditTransactionType {
+  BONUS
+  PURCHASE
+  GENERATION_DEDUCTION
+  REFUND
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  clerkId            String              @unique @map("clerk_id")
+  email              String              @unique
+  name               String?
+  avatarUrl          String?             @map("avatar_url")
+  role               Role                @default(USER)
+  credits            Int                 @default(100)
+  subscriptionTier   String              @default("FREE") @map("subscription_tier")
+  stripeCustomerId   String?             @unique @map("stripe_customer_id")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  projects           Project[]
+  generations        Generation[]
+  creditTransactions CreditTransaction[]
+  subscriptions      Subscription[]
+  promptHistories    PromptHistory[]
+
+  @@index([clerkId])
+  @@index([email])
+  @@map("users")
+}
+
+model Project {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  title       String
+  description String?
+  aspectRatio String       @default("1:1") @map("aspect_ratio")
+  isPublic    Boolean      @default(false) @map("is_public")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generations Generation[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model Generation {
+  id           String           @id @default(uuid())
+  userId       String           @map("user_id")
+  projectId    String?          @map("project_id")
+  prompt       String
+  negativePrompt String?        @map("negative_prompt")
+  modelEngine  ModelEngine      @default(FLATIFY_VECTOR_PRO) @map("model_engine")
+  modelParams  Json?            @map("model_params")
+  outputUrl    String?          @map("output_url")
+  vectorSvgCode String?         @map("vector_svg_code")
+  status       GenerationStatus @default(PENDING)
+  creditsCost  Int              @default(1) @map("credits_cost")
+  latencyMs    Int?             @map("latency_ms")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([modelEngine])
+  @@index([createdAt])
+  @@map("generations")
+}
+
+model CreditTransaction {
+  id          String                @id @default(uuid())
+  userId      String                @map("user_id")
+  amount      Int
+  type        CreditTransactionType
+  description String?
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("credit_transactions")
+}
+
+model Subscription {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  stripeSubscriptionId String   @unique @map("stripe_subscription_id")
+  plan                 String
+  status               String
+  currentPeriodEnd     DateTime @map("current_period_end")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model PromptHistory {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  prompt      String
+  category    String?
+  modelEngine String?  @map("model_engine")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("prompt_histories")
+}

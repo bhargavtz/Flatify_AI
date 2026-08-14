@@ -2,218 +2,162 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, Camera, Video, Box, Layers, ArrowUpRight, Cpu, Star } from "lucide-react"
+import { Camera, Video, Box, Layers, ArrowUpRight } from "lucide-react"
 
 const MODEL_CATEGORIES = [
-  { id: "photo", label: "Studio Photography", icon: Camera, color: "from-blue-500 to-indigo-500" },
-  { id: "video", label: "Cinema & Video AI", icon: Video, color: "from-purple-500 to-pink-500" },
-  { id: "vector", label: "Vector & Flat Logos", icon: Layers, color: "from-emerald-400 to-teal-600" },
-  { id: "3d", label: "3D Assets & Meshes", icon: Box, color: "from-amber-400 to-orange-500" },
+  { id: "photo", label: "Photography", icon: Camera },
+  { id: "video", label: "Motion", icon: Video },
+  { id: "vector", label: "Vector", icon: Layers },
+  { id: "3d", label: "Mesh", icon: Box },
 ]
 
 const MODELS_DATA = [
   {
     category: "photo",
-    name: "Flux.1 Ultra Realism",
-    tag: "Studio Grade",
-    resolution: "8K UHD Photo",
+    name: "Flux.1 Ultra",
+    tag: "Studio still",
+    resolution: "8K",
     speed: "1.2s",
-    desc: "Unmatched hyper-realistic human skin textures, realistic lighting, and studio lens bokeh depth.",
-    badge: "99.8% Accuracy",
+    desc: "Skin, light, and lens that hold up on a poster. Not a filter.",
     image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
-    prompt: "Vogue studio fashion portrait, 85mm f/1.4 lens, soft box volumetric lighting, 8k resolution"
+    prompt: "Studio portrait, 85mm, soft box, held color",
   },
   {
     category: "photo",
-    name: "Midjourney v6.1 Engine",
-    tag: "Artistic Genius",
-    resolution: "Photorealistic 4K",
+    name: "Midjourney v6.1",
+    tag: "Art direction",
+    resolution: "4K",
     speed: "2.4s",
-    desc: "Breathtaking aesthetic compositions, dramatic shadows, and film stock color science.",
-    badge: "Community Choice",
+    desc: "Composition and film color when you need atmosphere, not a product shot.",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80",
-    prompt: "Cyberpunk urban detective, rainy neon reflective street, Hasselblad analog film texture"
+    prompt: "Night street, wet asphalt, analog grain",
   },
   {
     category: "video",
-    name: "Sora Video Gen-2",
-    tag: "60 FPS Cinema",
-    resolution: "4K Motion HDR",
+    name: "Sora Gen-2",
+    tag: "Cinema",
+    resolution: "4K HDR",
     speed: "8.0s",
-    desc: "Physics-compliant fluid camera movements, multi-character temporal consistency.",
-    badge: "Hollywood Ready",
+    desc: "Camera that obeys physics. Characters that stay themselves across frames.",
     image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
-    prompt: "Drone tracking shot flying through futuristic glass skyscraper canyon at sunset"
+    prompt: "Tracking shot through glass towers at dusk",
   },
   {
     category: "video",
-    name: "Runway Gen-3 Alpha",
-    tag: "Hyper Motion",
-    resolution: "1080p 60fps",
+    name: "Runway Gen-3",
+    tag: "Steer",
+    resolution: "1080p 60",
     speed: "5.5s",
-    desc: "Direct camera controls, pan, tilt, zoom, and prompt-steered cinematic lighting shifts.",
-    badge: "Pro Director Choice",
+    desc: "Pan, tilt, zoom — directed, not guessed.",
     image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=800&q=80",
-    prompt: "Macro close up of a glowing biomechanical robotic eye opening slowly"
+    prompt: "Macro of a mechanical iris opening",
   },
   {
     category: "vector",
-    name: "Flatify Vector Pro 3.0",
-    tag: "Infinite SVG",
-    resolution: "Lossless Scalable",
+    name: "Flatify Vector",
+    tag: "The point",
+    resolution: "SVG",
     speed: "0.8s",
-    desc: "Clean geometry, clean paths, zero unwanted artifacts. Ideal for brand logos & icons.",
-    badge: "Vector Precision",
+    desc: "Planes, nodes, no mush. Built for marks, icons, and brand sheets.",
     image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
-    prompt: "Minimalist flat geometric fox logo, vibrant dual-tone indigo & electric coral gradient"
+    prompt: "Geometric fox, two-color, hard edges",
   },
   {
     category: "3d",
-    name: "Meshy 3D Engine",
-    tag: "GLTF / OBJ Export",
-    resolution: "High-Poly Mesh",
+    name: "Meshy",
+    tag: "Object",
+    resolution: "GLTF / OBJ",
     speed: "4.0s",
-    desc: "Instant text-to-3D model creation with PBR material maps and clean quad topology.",
-    badge: "Game Engine Ready",
+    desc: "A mesh you can drop in a scene. PBR maps included.",
     image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80",
-    prompt: "Futuristic neon cyberpunk helmet, PBR roughness map, Octane render 3D asset"
-  }
+    prompt: "Helmet, roughness map, studio light",
+  },
 ]
 
 export default function ModelMatrix() {
-  const [activeCategory, setActiveCategory] = useState("photo")
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-
+  const [activeCategory, setActiveCategory] = useState("vector")
   const filteredModels = MODELS_DATA.filter((m) => m.category === activeCategory)
 
   return (
-    <section className="relative py-28 px-4 max-w-7xl mx-auto z-10">
-      {/* Section Header */}
-      <div className="text-center mb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border-indigo-500/30 text-indigo-300 text-xs font-semibold tracking-wider uppercase mb-4"
-        >
-          <Cpu className="w-4 h-4 text-indigo-400" />
-          The Multi-Model Matrix Architecture
-        </motion.div>
-        
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-6"
-        >
-          Every World-Class AI Model. <br />
-          <span className="text-gradient-cyan">Unified in One Studio.</span>
-        </motion.h2>
-        
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-slate-400 text-lg max-w-2xl mx-auto"
-        >
-          Switch seamlessly between top photography, cinema video, vector graphic, and 3D rendering engines with zero prompt loss.
-        </motion.p>
+    <section className="mx-auto max-w-6xl px-5 py-24 md:px-8">
+      <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-saffron">Work on the wall</p>
+          <h2 className="mt-4 max-w-lg font-display text-4xl font-semibold tracking-tight text-chalk text-balance md:text-5xl">
+            Engines, treated as tools.
+          </h2>
+        </div>
+        <p className="max-w-sm text-sm leading-relaxed text-mist">
+          Photography, motion, vector, mesh — pick a desk, not a galaxy of glowing orbs.
+        </p>
       </div>
 
-      {/* Category Nav Tabs */}
-      <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+      <div className="mt-10 flex flex-wrap gap-2" role="tablist" aria-label="Engine type">
         {MODEL_CATEGORIES.map((cat) => {
           const Icon = cat.icon
           const isActive = activeCategory === cat.id
           return (
             <button
               key={cat.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => setActiveCategory(cat.id)}
-              className={`relative flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                isActive
-                  ? "text-white bg-indigo-600/80 shadow-lg shadow-indigo-500/25 border border-indigo-400/40"
-                  : "text-slate-400 hover:text-white glass-panel hover:border-slate-700"
+              className={`btn-press inline-flex min-h-11 items-center gap-2 rounded-md px-4 text-sm font-semibold transition-colors duration-200 ease-out ${
+                isActive ? "bg-chalk text-ink" : "border border-chalk/15 text-mist hover:text-chalk"
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+              <Icon className="h-4 w-4" aria-hidden="true" />
               {cat.label}
-              {isActive && (
-                <motion.div
-                  layoutId="activeTabGlow"
-                  className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 blur-md opacity-30 -z-10"
-                />
-              )}
             </button>
           )
         })}
       </div>
 
-      {/* Models Grid */}
-      <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <AnimatePresence mode="wait">
-          {filteredModels.map((model, idx) => (
-            <motion.div
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeCategory}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+          className="mt-10 grid gap-6 md:grid-cols-2"
+        >
+          {filteredModels.map((model) => (
+            <article
               key={model.name}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4, delay: idx * 0.1 }}
-              onMouseEnter={() => setHoveredIndex(idx)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              className="group relative glass-card rounded-2xl p-6 overflow-hidden flex flex-col justify-between"
+              className="group overflow-hidden border border-chalk/10 bg-slateink"
             >
-              {/* Background Glow */}
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/25 transition-all duration-500" />
-
-              <div>
-                {/* Header info */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    {model.tag}
-                  </span>
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    <span>{model.badge}</span>
-                  </div>
+              <div className="relative aspect-[16/10] overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={model.image}
+                  alt=""
+                  width={800}
+                  height={500}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                />
+                <span className="absolute left-4 top-4 bg-ink/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-chalk">
+                  {model.tag}
+                </span>
+              </div>
+              <div className="p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-display text-2xl font-semibold text-chalk">{model.name}</h3>
+                  <ArrowUpRight className="h-5 w-5 text-mist transition-transform duration-200 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
                 </div>
-
-                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors flex items-center justify-between">
-                  {model.name}
-                  <ArrowUpRight className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 transition-colors group-hover:translate-x-1 group-hover:-translate-y-1" />
-                </h3>
-
-                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                  {model.desc}
-                </p>
-
-                {/* Preview Image Card */}
-                <div className="relative h-48 rounded-xl overflow-hidden mb-6 border border-white/10 group-hover:border-indigo-500/40 transition-colors">
-                  <img
-                    src={model.image}
-                    alt={model.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80" />
-                  
-                  <div className="absolute bottom-3 left-3 right-3 p-3 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-xs text-slate-300 truncate">
-                    <span className="text-indigo-400 font-medium">Prompt:</span> &quot;{model.prompt}&quot;
-                  </div>
+                <p className="mt-2 text-sm leading-relaxed text-mist">{model.desc}</p>
+                <p className="mt-4 truncate font-mono text-[11px] text-mist/80">“{model.prompt}”</p>
+                <div className="mt-5 flex justify-between border-t border-chalk/10 pt-4 font-mono text-[11px] tabular-nums text-mist">
+                  <span>Out {model.resolution}</span>
+                  <span>{model.speed}</span>
                 </div>
               </div>
-
-              {/* Footer Meta */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/5 text-xs text-slate-400">
-                <div>
-                  <span className="text-slate-500">Output:</span> <strong className="text-white">{model.resolution}</strong>
-                </div>
-                <div>
-                  <span className="text-slate-500">Avg Speed:</span> <strong className="text-emerald-400">{model.speed}</strong>
-                </div>
-              </div>
-            </motion.div>
+            </article>
           ))}
-        </AnimatePresence>
-      </motion.div>
+        </motion.div>
+      </AnimatePresence>
     </section>
   )
 }

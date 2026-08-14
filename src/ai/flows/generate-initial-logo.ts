@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { requireSignedIn } from '@/lib/auth-api';
 
 const GenerateInitialLogoInputSchema = z.object({
   businessName: z.string().describe('The name of the business.'),
@@ -27,6 +28,7 @@ const GenerateInitialLogoOutputSchema = z.object({
 export type GenerateInitialLogoOutput = z.infer<typeof GenerateInitialLogoOutputSchema>;
 
 export async function generateInitialLogo(input: GenerateInitialLogoInput): Promise<GenerateInitialLogoOutput> {
+  await requireSignedIn();
   return generateInitialLogoFlow(input);
 }
 
@@ -65,6 +67,6 @@ const generateInitialLogoFlow = ai.defineFlow(
       },
     });
 
-    return {logoDataUri: media.url!};
+    return {logoDataUri: media?.url || ''};
   }
 );

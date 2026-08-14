@@ -115,7 +115,7 @@ export function ProfessionalGeneratorView() {
   const handleClearHistory = async () => {
     if (isSignedIn && user?.id) {
       try {
-        const response = await fetch(`/api/user/prompt-history?userId=${user.id}`, { method: 'DELETE' });
+        const response = await fetch("/api/user/prompt-history", { method: "DELETE" });
         const data = await response.json();
         if (data.success) {
           setPromptHistory([]);
@@ -226,8 +226,8 @@ export function ProfessionalGeneratorView() {
   };
 
   return (
-    <div className="py-4 px-4 sm:px-6 lg:px-8 w-full">
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+    <div className="w-full min-w-0 overflow-x-hidden py-4 px-4 sm:px-6 lg:px-8">
+       <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2 shadow-2xl">
           <CardHeader>
             <CardTitle className="text-2xl font-bold flex items-center gap-2">

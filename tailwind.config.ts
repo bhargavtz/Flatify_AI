@@ -10,6 +10,13 @@ export default {
   theme: {
   	extend: {
   		colors: {
+  			ink: '#12151C',
+  			chalk: '#F3F0EA',
+  			cobalt: '#2F5BFF',
+  			saffron: '#E8A317',
+  			coral: '#FF4D3A',
+  			mist: '#9AA3B5',
+  			slateink: '#1A1E28',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -60,6 +67,11 @@ export default {
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
   			}
+  		},
+  		fontFamily: {
+  			display: ['var(--font-display)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			body: ['var(--font-body)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
