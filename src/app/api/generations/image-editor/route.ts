@@ -1,97 +1,102 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { ObjectId } from "mongodb"
+import clientPromise from "@/lib/mongodb"
+import { guardMutating, requireUser, tooLargeDataUri } from "@/lib/auth-api"
 
-import { type NextRequest, NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+function mongoError(error: unknown): NextResponse {
+  console.error("Image editor generation API error:", error)
+  if (error instanceof Error && error.name === "MongoNetworkError") {
+    return NextResponse.json({ success: false, message: "Database connection error." }, { status: 503 })
+  }
+  return NextResponse.json({ success: false, message: "An internal server error occurred." }, { status: 500 })
+}
 
 export async function POST(request: NextRequest) {
-  try {
-    const { userId, sourceImageUri, sourceImageOriginalName, businessName, businessDescription, logoDataUri } = await request.json();
+  const session = await requireUser()
+  if (session.error) return session.error
+  const blocked = guardMutating(request, `gen:${session.userId}`, 12)
+  if (blocked) return blocked
 
-    if (!userId || !sourceImageUri || !businessName || !businessDescription || !logoDataUri) {
-      return NextResponse.json({ success: false, message: 'User ID, source image, business details, and logo data are required.' }, { status: 400 });
+  try {
+    const { sourceImageUri, sourceImageOriginalName, businessName, businessDescription, logoDataUri } =
+      await request.json()
+
+    if (!sourceImageUri || !businessName || !businessDescription || !logoDataUri) {
+      return NextResponse.json(
+        { success: false, message: "Source image, business details, and logo data are required." },
+        { status: 400 }
+      )
     }
-    const client = await clientPromise;
-    const db = client.db();
-    
-    const newGeneration = {
-      userId, // Store userId as a string
-      sourceImageUri, // Storing as data URI; consider blob storage for production
+    if (tooLargeDataUri(logoDataUri) || tooLargeDataUri(sourceImageUri)) {
+      return NextResponse.json({ success: false, message: "Image is too large to store." }, { status: 413 })
+    }
+
+    const client = await clientPromise
+    const db = client.db()
+    await db.collection("image_editor_generations").insertOne({
+      userId: session.userId,
+      sourceImageUri,
       sourceImageOriginalName,
       businessName,
       businessDescription,
       logoDataUri,
       createdAt: new Date(),
-    };
+    })
 
-    await db.collection('image_editor_generations').insertOne(newGeneration);
-
-    return NextResponse.json({ success: true, message: 'Image Editor logo generation saved.'});
+    return NextResponse.json({ success: true, message: "Image Editor logo generation saved." })
   } catch (error) {
-    console.error("Save Image Editor Generation API error:", error);
-    if (error instanceof Error && error.name === 'MongoNetworkError') {
-        return NextResponse.json({ success: false, message: 'Database connection error.' }, { status: 503 });
-    }
-    return NextResponse.json({ success: false, message: 'An internal server error occurred.' }, { status: 500 });
+    return mongoError(error)
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    const userId = searchParams.get('userId');
+  const session = await requireUser()
+  if (session.error) return session.error
+  const blocked = guardMutating(request, `del:${session.userId}`, 30)
+  if (blocked) return blocked
 
-    if (!id || !userId) {
-      return NextResponse.json({ success: false, message: 'ID and User ID are required.' }, { status: 400 });
+  try {
+    const id = new URL(request.url).searchParams.get("id")
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: "A valid ID is required." }, { status: 400 })
     }
 
-    const client = await clientPromise;
-    const db = client.db();
-
-    const result = await db.collection('image_editor_generations').deleteOne({
+    const client = await clientPromise
+    const db = client.db()
+    const result = await db.collection("image_editor_generations").deleteOne({
       _id: new ObjectId(id),
-      userId: userId, // userId is stored as a string in this collection
-    });
+      userId: session.userId,
+    })
 
     if (result.deletedCount === 0) {
-      return NextResponse.json({ success: false, message: 'Image Editor logo not found or user not authorized.' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, message: "Image Editor logo not found or user not authorized." },
+        { status: 404 }
+      )
     }
 
-    return NextResponse.json({ success: true, message: 'Image Editor logo deleted successfully.' });
+    return NextResponse.json({ success: true, message: "Image Editor logo deleted successfully." })
   } catch (error) {
-    console.error("Delete Image Editor Generation API error:", error);
-    if (error instanceof Error && error.name === 'MongoNetworkError') {
-        return NextResponse.json({ success: false, message: 'Database connection error.' }, { status: 503 });
-    }
-    return NextResponse.json({ success: false, message: 'An internal server error occurred.' }, { status: 500 });
+    return mongoError(error)
   }
 }
 
 export async function GET(request: NextRequest) {
+  const session = await requireUser()
+  if (session.error) return session.error
+  void request
+
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'User ID is required.' }, { status: 400 });
-    }
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
-
-    const client = await clientPromise;
-    const db = client.db();
-    const generations = await db.collection('image_editor_generations')
-      .find({ userId: new ObjectId(userId) })
+    const client = await clientPromise
+    const db = client.db()
+    const generations = await db
+      .collection("image_editor_generations")
+      .find({ userId: session.userId })
       .sort({ createdAt: -1 })
-      .toArray();
+      .toArray()
 
-    return NextResponse.json({ success: true, data: generations });
+    return NextResponse.json({ success: true, data: generations })
   } catch (error) {
-    console.error("Get Image Editor Generations API error:", error);
-    if (error instanceof Error && error.name === 'MongoNetworkError') {
-        return NextResponse.json({ success: false, message: 'Database connection error.' }, { status: 503 });
-    }
-    return NextResponse.json({ success: false, message: 'An internal server error occurred.' }, { status: 500 });
+    return mongoError(error)
   }
 }

@@ -168,7 +168,7 @@ export function NoviceGeneratorView() {
   };
 
   return (
-    <div className="py-4 px-4 sm:px-6 lg:px-8 w-full">
+    <div className="w-full min-w-0 overflow-x-hidden py-4 px-4 sm:px-6 lg:px-8">
       <Card className="shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
@@ -237,7 +237,7 @@ export function NoviceGeneratorView() {
                   rows={3}
                   className="text-sm min-h-[80px]"
                 />
-                <div className="flex gap-2 mt-2">
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className="w-full text-xs" disabled={isSuggesting || !businessName.trim()} onClick={() => handleGenerateSuggestions('description')}>
@@ -245,7 +245,7 @@ export function NoviceGeneratorView() {
                         Suggest Descriptions
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80">
+                    <PopoverContent className="w-[min(20rem,calc(100vw-2rem))]">
                       <div className="grid gap-4">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">Description Suggestions</h4>
@@ -274,7 +274,7 @@ export function NoviceGeneratorView() {
                         Suggest Slogans
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80">
+                    <PopoverContent className="w-[min(20rem,calc(100vw-2rem))]">
                       <div className="grid gap-4">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">Slogan Suggestions</h4>
@@ -310,7 +310,7 @@ export function NoviceGeneratorView() {
                 <SimpleColorPicker label="Secondary Color" color={secondaryColor} setColor={setSecondaryColor} />
               </div>
                <p className="text-xs text-muted-foreground">These colors will guide the AI in generating your logo.</p>
-              <div className="flex gap-2 mt-2">
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm" className="w-full text-xs" disabled={isSuggesting || !businessName.trim()} onClick={() => handleGenerateSuggestions('color')}>
@@ -318,7 +318,7 @@ export function NoviceGeneratorView() {
                       Suggest Colors
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80">
+                  <PopoverContent className="w-[min(20rem,calc(100vw-2rem))]">
                     <div className="grid gap-4">
                       <div className="space-y-2">
                         <h4 className="font-medium leading-none">Color Suggestions</h4>
@@ -335,8 +335,8 @@ export function NoviceGeneratorView() {
                                 {color}
                               </span>
                               <div className="flex gap-1">
-                                <Button variant="outline" size="xs" onClick={() => setPrimaryColor(color)}>Primary</Button>
-                                <Button variant="outline" size="xs" onClick={() => setSecondaryColor(color)}>Secondary</Button>
+                                <Button variant="outline" size="sm" onClick={() => setPrimaryColor(color)}>Primary</Button>
+                                <Button variant="outline" size="sm" onClick={() => setSecondaryColor(color)}>Secondary</Button>
                               </div>
                             </div>
                           ))}
@@ -354,7 +354,7 @@ export function NoviceGeneratorView() {
                       Suggest Icons
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80">
+                  <PopoverContent className="w-[min(20rem,calc(100vw-2rem))]">
                     <div className="grid gap-4">
                       <div className="space-y-2">
                         <h4 className="font-medium leading-none">Icon Suggestions</h4>
@@ -385,10 +385,10 @@ export function NoviceGeneratorView() {
                 <h4 className="font-medium text-sm">Choose Your Font (Optional)</h4>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="font-select" className="text-sm">Font Style:</Label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Label htmlFor="font-select" className="shrink-0 text-sm">Font Style:</Label>
                   <Select onValueChange={setSelectedFont} defaultValue={selectedFont}>
-                    <SelectTrigger id="font-select" className="w-[180px] text-sm">
+                    <SelectTrigger id="font-select" className="w-full min-w-0 text-sm">
                       <SelectValue placeholder="Select a font" />
                     </SelectTrigger>
                     <SelectContent>
@@ -410,10 +410,10 @@ export function NoviceGeneratorView() {
                 <h4 className="font-medium text-sm">Choose Your Layout (Optional)</h4>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="layout-select" className="text-sm">Layout Style:</Label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Label htmlFor="layout-select" className="shrink-0 text-sm">Layout Style:</Label>
                   <Select onValueChange={setSelectedLayout} defaultValue={selectedLayout}>
-                    <SelectTrigger id="layout-select" className="w-[220px] text-sm">
+                    <SelectTrigger id="layout-select" className="w-full min-w-0 text-sm">
                       <SelectValue placeholder="Select a layout" />
                     </SelectTrigger>
                     <SelectContent>

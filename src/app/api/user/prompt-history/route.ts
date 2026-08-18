@@ -1,125 +1,108 @@
+import { type NextRequest, NextResponse } from "next/server"
+import clientPromise from "@/lib/mongodb"
+import { guardMutating, requireUser } from "@/lib/auth-api"
 
-import { type NextRequest, NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+const MAX_HISTORY_ITEMS = 15
 
-const MAX_HISTORY_ITEMS = 15; // Increased slightly from typical localStorage use
+interface HistoryDoc {
+  clerkId: string
+  prompts: string[]
+  updatedAt: Date
+}
 
-export async function GET(request: NextRequest) {
+function mongoError(error: unknown): NextResponse {
+  console.error("Prompt history API error:", error)
+  if (error instanceof Error && error.name === "MongoNetworkError") {
+    return NextResponse.json({ success: false, message: "Database connection error." }, { status: 503 })
+  }
+  return NextResponse.json({ success: false, message: "An internal server error occurred." }, { status: 500 })
+}
+
+async function historyCol() {
+  const client = await clientPromise
+  return client.db().collection<HistoryDoc>("prompt_histories")
+}
+
+export async function GET() {
+  const session = await requireUser()
+  if (session.error) return session.error
+
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'User ID is required.' }, { status: 400 });
-    }
-
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
-
-    const client = await clientPromise;
-    const db = client.db();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'User not found.' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, promptHistory: user.promptHistory || [] });
-
+    const col = await historyCol()
+    const doc = await col.findOne({ clerkId: session.userId })
+    return NextResponse.json({ success: true, promptHistory: doc?.prompts ?? [] })
   } catch (error) {
-    console.error("Get Prompt History API error:", error);
-    if (error instanceof Error && error.name === 'MongoNetworkError') {
-        return NextResponse.json({ success: false, message: 'Database connection error.' }, { status: 503 });
-    }
-    return NextResponse.json({ success: false, message: 'An internal server error occurred.' }, { status: 500 });
+    return mongoError(error)
   }
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireUser()
+  if (session.error) return session.error
+  const blocked = guardMutating(request, `hist:${session.userId}`, 40)
+  if (blocked) return blocked
+
   try {
-    const { userId, prompt } = await request.json();
-
-    if (!userId || !prompt) {
-      return NextResponse.json({ success: false, message: 'User ID and prompt are required.' }, { status: 400 });
-    }
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
+    const { prompt } = await request.json()
+    if (typeof prompt !== "string" || !prompt.trim()) {
+      return NextResponse.json({ success: false, message: "A prompt is required." }, { status: 400 })
     }
 
+    const col = await historyCol()
+    const existing = await col.findOne({ clerkId: session.userId })
+    const current = existing?.prompts ?? []
+    const next = [prompt.trim(), ...current.filter((row) => row !== prompt.trim())].slice(0, MAX_HISTORY_ITEMS)
+    await col.updateOne(
+      { clerkId: session.userId },
+      { $set: { clerkId: session.userId, prompts: next, updatedAt: new Date() } },
+      { upsert: true }
+    )
 
-    const client = await clientPromise;
-    const db = client.db();
-    const usersCollection = db.collection('users');
-
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'User not found.' }, { status: 404 });
-    }
-
-    let currentHistory: string[] = user.promptHistory || [];
-
-    // Add new prompt to the beginning, remove duplicates, and limit size
-    currentHistory = [prompt, ...currentHistory.filter(p => p !== prompt)].slice(0, MAX_HISTORY_ITEMS);
-
-    await usersCollection.updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { promptHistory: currentHistory } }
-    );
-
-    return NextResponse.json({ success: true, message: 'Prompt history updated.', promptHistory: currentHistory });
-
+    return NextResponse.json({ success: true, message: "Prompt history updated.", promptHistory: next })
   } catch (error) {
-    console.error("Post Prompt History API error:", error);
-    if (error instanceof Error && error.name === 'MongoNetworkError') {
-        return NextResponse.json({ success: false, message: 'Database connection error.' }, { status: 503 });
-    }
-    return NextResponse.json({ success: false, message: 'An internal server error occurred.' }, { status: 500 });
+    return mongoError(error)
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const session = await requireUser()
+  if (session.error) return session.error
+  const blocked = guardMutating(request, `hist-del:${session.userId}`, 40)
+  if (blocked) return blocked
+
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const promptToDelete = searchParams.get('prompt'); // Get the specific prompt to delete
+    const params = new URL(request.url).searchParams
+    const promptToDelete = params.get("prompt")
+    const indexParam = params.get("id")
 
-    if (!userId || !promptToDelete) {
-      return NextResponse.json({ success: false, message: 'User ID and prompt to delete are required.' }, { status: 400 });
-    }
-    if (!ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'Invalid User ID format.' }, { status: 400 });
-    }
+    const col = await historyCol()
+    const existing = await col.findOne({ clerkId: session.userId })
+    const current = existing?.prompts ?? []
 
-    const client = await clientPromise;
-    const db = client.db();
-    const usersCollection = db.collection('users');
-
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'User not found.' }, { status: 404 });
-    }
-
-    let currentHistory: string[] = user.promptHistory || [];
-    const updatedHistory = currentHistory.filter(p => p !== promptToDelete);
-
-    if (updatedHistory.length === currentHistory.length) {
-      return NextResponse.json({ success: false, message: 'Prompt not found in history.' }, { status: 404 });
+    let next: string[]
+    if (!promptToDelete && (indexParam === null || indexParam === "")) {
+      next = []
+    } else if (promptToDelete) {
+      next = current.filter((row) => row !== promptToDelete)
+      if (next.length === current.length) {
+        return NextResponse.json({ success: false, message: "Prompt not found in history." }, { status: 404 })
+      }
+    } else {
+      const index = Number(indexParam)
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) {
+        return NextResponse.json({ success: false, message: "Prompt not found in history." }, { status: 404 })
+      }
+      next = current.filter((_, i) => i !== index)
     }
 
-    await usersCollection.updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { promptHistory: updatedHistory } }
-    );
+    await col.updateOne(
+      { clerkId: session.userId },
+      { $set: { clerkId: session.userId, prompts: next, updatedAt: new Date() } },
+      { upsert: true }
+    )
 
-    return NextResponse.json({ success: true, message: 'Prompt deleted successfully.', promptHistory: updatedHistory });
-
+    return NextResponse.json({ success: true, message: "Prompt deleted successfully.", promptHistory: next })
   } catch (error) {
-    console.error("Delete Prompt History API error:", error);
-    if (error instanceof Error && error.name === 'MongoNetworkError') {
-        return NextResponse.json({ success: false, message: 'Database connection error.' }, { status: 503 });
-    }
-    return NextResponse.json({ success: false, message: 'An internal server error occurred.' }, { status: 500 });
+    return mongoError(error)
   }
 }

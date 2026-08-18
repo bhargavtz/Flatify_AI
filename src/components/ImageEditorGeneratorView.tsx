@@ -287,7 +287,7 @@ export function ImageEditorGeneratorView() {
 
 
   return (
-    <div className="py-4 px-4 sm:px-6 lg:px-8 w-full">
+    <div className="w-full min-w-0 overflow-x-hidden py-4 px-4 sm:px-6 lg:px-8">
       <Card className="shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
@@ -400,7 +400,7 @@ export function ImageEditorGeneratorView() {
                           {isSuggesting ? <LoadingSpinner size="sm" /> : <Lightbulb className="h-4 w-4" />}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80">
+                      <PopoverContent className="w-[min(20rem,calc(100vw-2rem))]">
                         <div className="grid gap-4">
                           <div className="space-y-2">
                             <h4 className="font-medium leading-none">Color Suggestions</h4>

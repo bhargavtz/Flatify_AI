@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { requireSignedIn } from '@/lib/auth-api';
 
 const RefineLogoPromptInputSchema = z.object({
   prompt: z
@@ -27,6 +28,7 @@ const RefineLogoPromptOutputSchema = z.object({
 export type RefineLogoPromptOutput = z.infer<typeof RefineLogoPromptOutputSchema>;
 
 export async function refineLogoPrompt(input: RefineLogoPromptInput): Promise<RefineLogoPromptOutput> {
+  await requireSignedIn();
   return refineLogoPromptFlow(input);
 }
 

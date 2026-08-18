@@ -1,18 +1,17 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, History, AlertCircle, Palette, Edit3, Sparkles, ImageOff, Download, Trash2, Edit } from 'lucide-react';
+import { History, Palette, Edit3, Sparkles, ImageOff, Download, Trash2, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
+import Link from 'next/link';
 
 interface NoviceGeneration {
   _id: string;
@@ -43,7 +42,7 @@ interface ImageEditorGeneration {
   createdAt: string;
 }
 
-type TextPromptHistoryItem = string; 
+type TextPromptHistoryItem = string;
 
 export default function DashboardPage() {
   const { user, isLoaded, isSignedIn } = useUser();
@@ -59,7 +58,6 @@ export default function DashboardPage() {
   const [isLoadingProfessional, setIsLoadingProfessional] = useState(true);
   const [isLoadingImageEditor, setIsLoadingImageEditor] = useState(true);
 
-  // State for delete confirmation dialogs
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'novice' | 'professional' | 'imageEditor' | 'textPrompt' } | null>(null);
 
@@ -74,48 +72,48 @@ export default function DashboardPage() {
       const historyData = await historyRes.json();
       if (historyData.success && historyData.promptHistory) {
         setTextPromptHistory(historyData.promptHistory);
-      } else {
-        // toast({ title: "Error fetching text history", description: historyData.message, variant: "destructive" });
-        console.warn("Failed to fetch text prompt history:", historyData.message);
       }
-    } catch (e) { toast({ title: "Network Error", description: "Could not fetch text prompt history.", variant: "destructive"}); }
-    finally { setIsLoadingHistory(false); }
+    } catch (e) {
+      console.warn("Failed to fetch text prompt history");
+    } finally {
+      setIsLoadingHistory(false);
+    }
 
     try {
       const noviceRes = await fetch(`/api/generations/novice?userId=${userId}`);
       const noviceData = await noviceRes.json();
       if (noviceData.success) {
         setNoviceGenerations(noviceData.data);
-      } else {
-        // toast({ title: "Error fetching Novice logos", description: noviceData.message, variant: "destructive" });
-         console.warn("Failed to fetch novice logos:", noviceData.message);
       }
-    } catch (e) { toast({ title: "Network Error", description: "Could not fetch Novice logos.", variant: "destructive"});}
-    finally { setIsLoadingNovice(false); }
+    } catch (e) {
+      console.warn("Failed to fetch novice logos");
+    } finally {
+      setIsLoadingNovice(false);
+    }
 
     try {
       const proRes = await fetch(`/api/generations/professional?userId=${userId}`);
       const proData = await proRes.json();
       if (proData.success) {
         setProfessionalGenerations(proData.data);
-      } else {
-        // toast({ title: "Error fetching Pro logos", description: proData.message, variant: "destructive" });
-        console.warn("Failed to fetch pro logos:", proData.message);
       }
-    } catch (e) { toast({ title: "Network Error", description: "Could not fetch Pro logos.", variant: "destructive"});}
-    finally { setIsLoadingProfessional(false); }
+    } catch (e) {
+      console.warn("Failed to fetch pro logos");
+    } finally {
+      setIsLoadingProfessional(false);
+    }
     
     try {
       const imgEditRes = await fetch(`/api/generations/image-editor?userId=${userId}`);
       const imgEditData = await imgEditRes.json();
       if (imgEditData.success) {
         setImageEditorGenerations(imgEditData.data);
-      } else {
-        // toast({ title: "Error fetching Image Editor logos", description: imgEditData.message, variant: "destructive" });
-        console.warn("Failed to fetch image editor logos:", imgEditData.message);
       }
-    } catch (e) { toast({ title: "Network Error", description: "Could not fetch Image Editor logos.", variant: "destructive"});}
-    finally { setIsLoadingImageEditor(false); }
+    } catch (e) {
+      console.warn("Failed to fetch image editor logos");
+    } finally {
+      setIsLoadingImageEditor(false);
+    }
   };
 
   useEffect(() => {
@@ -127,8 +125,7 @@ export default function DashboardPage() {
       setIsLoadingProfessional(false);
       setIsLoadingImageEditor(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isLoaded, isSignedIn]); // Removed toast from deps
+  }, [user, isLoaded, isSignedIn]);
 
   const handleDeleteConfirmation = (id: string, type: 'novice' | 'professional' | 'imageEditor' | 'textPrompt') => {
     setItemToDelete({ id, type });
@@ -146,24 +143,24 @@ export default function DashboardPage() {
 
     switch (type) {
       case 'novice':
-        endpoint = `/api/generations/novice?id=${id}&userId=${user.id}`;
-        successMessage = 'Novice logo deleted successfully.';
-        errorMessage = 'Failed to delete novice logo.';
+        endpoint = `/api/generations/novice?id=${id}`;
+        successMessage = 'Logo deleted successfully.';
+        errorMessage = 'Failed to delete logo.';
         break;
       case 'professional':
-        endpoint = `/api/generations/professional?id=${id}&userId=${user.id}`;
-        successMessage = 'Professional logo deleted successfully.';
-        errorMessage = 'Failed to delete professional logo.';
+        endpoint = `/api/generations/professional?id=${id}`;
+        successMessage = 'Pro logo deleted successfully.';
+        errorMessage = 'Failed to delete pro logo.';
         break;
       case 'imageEditor':
-        endpoint = `/api/generations/image-editor?id=${id}&userId=${user.id}`;
-        successMessage = 'Image-based logo deleted successfully.';
-        errorMessage = 'Failed to delete image-based logo.';
+        endpoint = `/api/generations/image-editor?id=${id}`;
+        successMessage = 'Image logo deleted successfully.';
+        errorMessage = 'Failed to delete image logo.';
         break;
       case 'textPrompt':
-        endpoint = `/api/user/prompt-history?id=${id}&userId=${user.id}`; // Assuming text prompts have an ID
-        successMessage = 'Text prompt deleted successfully.';
-        errorMessage = 'Failed to delete text prompt.';
+        endpoint = `/api/user/prompt-history?prompt=${encodeURIComponent(textPromptHistory[Number(id)] ?? "")}`;
+        successMessage = 'Prompt deleted successfully.';
+        errorMessage = 'Failed to delete prompt.';
         break;
     }
 
@@ -173,20 +170,17 @@ export default function DashboardPage() {
 
       if (data.success) {
         toast({ title: "Success", description: successMessage });
-        // Update state to remove the deleted item
         if (type === 'novice') setNoviceGenerations(prev => prev.filter(item => item._id !== id));
         else if (type === 'professional') setProfessionalGenerations(prev => prev.filter(item => item._id !== id));
         else if (type === 'imageEditor') setImageEditorGenerations(prev => prev.filter(item => item._id !== id));
         else if (type === 'textPrompt') {
-          // For text prompts, the 'id' is actually the prompt string itself
-          setTextPromptHistory(prev => prev.filter((prompt, index) => index.toString() !== id));
+          setTextPromptHistory(prev => prev.filter((_, index) => index.toString() !== id));
         }
       } else {
         toast({ title: "Error", description: data.message || errorMessage, variant: "destructive" });
       }
     } catch (e) {
-      console.error(`Error deleting ${type} item:`, e);
-      toast({ title: "Network Error", description: `Could not delete ${type} item.`, variant: "destructive" });
+      toast({ title: "Network Error", description: `Could not delete item.`, variant: "destructive" });
     } finally {
       setItemToDelete(null);
     }
@@ -196,252 +190,244 @@ export default function DashboardPage() {
     const link = document.createElement('a');
     link.href = logoDataUri;
     const safeFileName = filenamePrefix.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-    link.download = `${safeFileName}_flatify_ai_saved.png`;
+    link.download = `${safeFileName}_flatify_ai.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast({ title: "Downloading...", description: "Your logo will be downloaded shortly."});
+    toast({ title: "Downloading...", description: "Your logo is downloading."});
   };
 
   if (!isLoaded || (isLoaded && !isSignedIn)) {
     return (
-      <div className="flex items-center justify-center flex-grow p-4">
+      <div className="min-h-screen bg-ink flex items-center justify-center p-4">
         <LoadingSpinner size="xl" />
       </div>
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center flex-grow p-4 text-center">
-        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold mb-2">Access Denied</h2>
-        <p className="text-muted-foreground">Please log in to view your dashboard.</p>
-      </div>
-    );
-  }
-  
-  const isOverallLoading = isLoadingHistory || isLoadingNovice || isLoadingProfessional || isLoadingImageEditor;
-
   return (
-    <div className="min-h-screen pt-20 pb-16 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-purple-900/20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <Card className="max-w-6xl mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-xl overflow-hidden">
-          <CardHeader className="pb-4 bg-transparent">
-            <div className="flex items-center gap-3 mb-2">
-              <LayoutDashboard className="w-10 h-10 text-primary" />
-              <div>
-                <CardTitle className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">My Dashboard</CardTitle>
-                <CardDescription className="text-md sm:text-lg text-gray-600 dark:text-gray-300 mt-1">
-                  Welcome back, {user.fullName || user.emailAddresses[0]?.emailAddress || 'User'}! Review your creations and prompt history.
-                </CardDescription>
-              </div>
+    <div className="relative min-h-dvh min-w-0 overflow-x-hidden bg-ink p-4 text-chalk selection:bg-cobalt selection:text-chalk sm:p-8">
+      <div className="grain" />
+
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+        {/* Header Title Section */}
+        <div className="glass-card flex flex-col items-start justify-between gap-6 rounded-3xl border border-white/10 p-6 md:flex-row md:items-center md:p-8">
+          <div className="min-w-0 space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-md border border-cobalt/30 bg-cobalt/15 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-saffron">
+              <Sparkles className="w-3.5 h-3.5 text-saffron" />
+              Flatify AI Studio Dashboard
             </div>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 space-y-8">
-            {isOverallLoading && (
-               <div className="flex flex-col items-center justify-center p-10 min-h-[400px]">
-                  <LoadingSpinner size="xl" />
-                  <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">Loading your creative work...</p>
-                </div>
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight text-balance">
+              Welcome back, <span className="text-saffron">{user?.firstName || "there"}</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400">
+              Manage your AI generations, exported SVG logos, prompt history, and studio assets.
+            </p>
+          </div>
+
+          <Link href="/generate" className="w-full md:w-auto">
+            <Button className="btn-press flex w-full items-center justify-center gap-2 rounded-md bg-cobalt px-6 py-6 text-xs font-semibold text-chalk hover:bg-[#4A70FF] md:w-auto">
+              <Sparkles className="w-4 h-4" />
+              <span>New AI Generation</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="glass-card p-5 rounded-2xl border border-white/5">
+            <div className="text-xs text-slate-400 mb-1">Small Business Logos</div>
+            <div className="text-2xl font-black text-white">{noviceGenerations.length}</div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-white/5">
+            <div className="text-xs text-slate-400 mb-1">Professional Designs</div>
+            <div className="text-2xl font-black text-white">{professionalGenerations.length}</div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-white/5">
+            <div className="text-xs text-slate-400 mb-1">Image-Based Exports</div>
+            <div className="text-2xl font-black text-white">{imageEditorGenerations.length}</div>
+          </div>
+          <div className="glass-card p-5 rounded-2xl border border-white/5">
+            <div className="text-xs text-slate-400 mb-1">Saved Text Prompts</div>
+            <div className="text-2xl font-black text-white">{textPromptHistory.length}</div>
+          </div>
+        </div>
+
+        {/* Studio Content Tabs */}
+        <Tabs defaultValue="novice" className="w-full space-y-6">
+          <TabsList className="glass-panel grid h-auto w-full grid-cols-2 gap-1 rounded-2xl border border-white/10 p-1.5 md:grid-cols-4">
+            <TabsTrigger
+              value="novice"
+              className="flex min-h-11 items-center justify-center gap-1 rounded-md px-1 py-3 text-[10px] font-semibold text-mist transition-colors duration-200 ease-out data-[state=active]:bg-cobalt data-[state=active]:text-chalk sm:gap-2 sm:text-xs"
+            >
+              <Palette className="h-4 w-4 shrink-0" />
+              <span className="truncate">Business</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="professional"
+              className="flex min-h-11 items-center justify-center gap-1 rounded-md px-1 py-3 text-[10px] font-semibold text-mist transition-colors duration-200 ease-out data-[state=active]:bg-cobalt data-[state=active]:text-chalk sm:gap-2 sm:text-xs"
+            >
+              <Sparkles className="h-4 w-4 shrink-0" />
+              <span className="truncate">Pro</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="imageEditor"
+              className="flex min-h-11 items-center justify-center gap-1 rounded-md px-1 py-3 text-[10px] font-semibold text-mist transition-colors duration-200 ease-out data-[state=active]:bg-cobalt data-[state=active]:text-chalk sm:gap-2 sm:text-xs"
+            >
+              <Edit3 className="h-4 w-4 shrink-0" />
+              <span className="truncate">Image</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="textHistory"
+              className="flex min-h-11 items-center justify-center gap-1 rounded-md px-1 py-3 text-[10px] font-semibold text-mist transition-colors duration-200 ease-out data-[state=active]:bg-cobalt data-[state=active]:text-chalk sm:gap-2 sm:text-xs"
+            >
+              <History className="h-4 w-4 shrink-0" />
+              <span className="truncate">Prompts</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Novice Tab */}
+          <TabsContent value="novice" className="space-y-4 focus-visible:outline-none">
+            {isLoadingNovice ? (
+              <div className="flex justify-center p-12 glass-card rounded-2xl"><LoadingSpinner size="lg" /></div>
+            ) : noviceGenerations.length === 0 ? (
+              <div className="text-center p-12 glass-card rounded-2xl space-y-3">
+                <ImageOff className="w-10 h-10 text-slate-600 mx-auto" />
+                <p className="text-sm text-slate-400">No Small Business logos generated yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {noviceGenerations.map((gen) => (
+                  <Card key={gen._id} className="glass-card border-white/10 rounded-2xl overflow-hidden flex flex-col justify-between">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="truncate text-base text-white">{gen.businessName}</CardTitle>
+                      <CardDescription className="text-xs text-slate-400 line-clamp-2">{gen.businessDescription}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 flex items-center justify-center bg-slate-950/60 my-2">
+                      <Image src={gen.logoDataUri} alt={gen.businessName} width={200} height={200} className="object-contain max-h-44 rounded-lg" />
+                    </CardContent>
+                    <CardFooter className="p-4 pt-2 flex items-center justify-between border-t border-white/5 text-xs text-slate-400">
+                      <span>{format(new Date(gen.createdAt), 'MMM d, yyyy')}</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => downloadLogo(gen.logoDataUri, gen.businessName)} className="h-8 px-2 text-cobalt hover:text-chalk">
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteConfirmation(gen._id, 'novice')} className="h-8 px-2 text-rose-400 hover:text-rose-300">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
             )}
+          </TabsContent>
 
-            {!isOverallLoading && (
-              <Tabs defaultValue="novice_logos" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 mb-6 bg-muted/60 p-1.5 rounded-lg">
-                  <TabsTrigger value="novice_logos" className="gap-2 py-2.5"><Palette className="w-5 h-5" /> Novice</TabsTrigger>
-                  <TabsTrigger value="pro_logos" className="gap-2 py-2.5"><Sparkles className="w-5 h-5" />Pro</TabsTrigger>
-                  <TabsTrigger value="image_editor_logos" className="gap-2 py-2.5"><Edit3 className="w-5 h-5" />Image-Based</TabsTrigger>
-                  <TabsTrigger value="text_prompts" className="gap-2 py-2.5"><History className="w-5 h-5" />Text Prompts</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="novice_logos">
-                  <section>
-                    <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white"><Palette className="w-7 h-7 text-accent" /> Novice Logos</h2>
-                    {noviceGenerations.length === 0 ? (
-                      <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg bg-card">
-                        <ImageOff className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-lg text-muted-foreground">No logos found from the Novice generator.</p>
-                        <p className="text-sm text-muted-foreground mt-1">Try creating some in the "Generate" section!</p>
+          {/* Pro Tab */}
+          <TabsContent value="professional" className="space-y-4 focus-visible:outline-none">
+            {isLoadingProfessional ? (
+              <div className="flex justify-center p-12 glass-card rounded-2xl"><LoadingSpinner size="lg" /></div>
+            ) : professionalGenerations.length === 0 ? (
+              <div className="text-center p-12 glass-card rounded-2xl space-y-3">
+                <ImageOff className="w-10 h-10 text-slate-600 mx-auto" />
+                <p className="text-sm text-slate-400">No Pro Studio designs generated yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {professionalGenerations.map((gen) => (
+                  <Card key={gen._id} className="glass-card border-white/10 rounded-2xl overflow-hidden flex flex-col justify-between">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-sm text-white line-clamp-1">Prompt: &quot;{gen.usedPrompt}&quot;</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 flex items-center justify-center bg-slate-950/60 my-2">
+                      <Image src={gen.logoDataUri} alt="Pro Logo" width={200} height={200} className="object-contain max-h-44 rounded-lg" />
+                    </CardContent>
+                    <CardFooter className="p-4 pt-2 flex items-center justify-between border-t border-white/5 text-xs text-slate-400">
+                      <span>{format(new Date(gen.createdAt), 'MMM d, yyyy')}</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => downloadLogo(gen.logoDataUri, "pro_logo")} className="h-8 px-2 text-cobalt hover:text-chalk">
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteConfirmation(gen._id, 'professional')} className="h-8 px-2 text-rose-400 hover:text-rose-300">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                    ) : (
-                      <ScrollArea className="h-[600px] p-1 -m-1">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {noviceGenerations.map((item) => (
-                            <Card key={item._id} className="overflow-hidden group transition-all hover:shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-                              <CardContent className="p-0 aspect-square flex items-center justify-center bg-secondary/20 group-hover:bg-secondary/30 transition-colors">
-                                <Image src={item.logoDataUri} alt={`Logo for ${item.businessName}`} width={250} height={250} className="object-contain max-h-full max-w-full p-3 transition-transform group-hover:scale-105" data-ai-hint="generated logo" />
-                              </CardContent>
-                              <CardHeader className="p-3 space-y-0.5">
-                                <CardTitle className="text-base font-semibold truncate text-gray-900 dark:text-white" title={item.businessName}>{item.businessName}</CardTitle>
-                                <CardDescription className="text-xs text-gray-600 dark:text-gray-300 truncate" title={item.businessDescription}>
-                                  {item.businessDescription.substring(0,100)}{item.businessDescription.length > 100 ? '...' : ''}
-                                </CardDescription>
-                                {(item.primaryColor || item.secondaryColor) && (
-                                  <div className="flex items-center gap-1.5 pt-1">
-                                    {item.primaryColor && <div className="w-3.5 h-3.5 rounded-full border border-border" style={{backgroundColor: item.primaryColor}} title={`Primary: ${item.primaryColor}`}></div>}
-                                    {item.secondaryColor && <div className="w-3.5 h-3.5 rounded-full border border-border" style={{backgroundColor: item.secondaryColor}} title={`Secondary: ${item.secondaryColor}`}></div>}
-                                  </div>
-                                )}
-                              </CardHeader>
-                              <CardFooter className="p-3 flex justify-between items-center text-xs text-gray-600 dark:text-gray-300 border-t">
-                                <span>{format(new Date(item.createdAt), "MMM d, yyyy")}</span>
-                                <div className="flex gap-1">
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Novice Logo: ${item._id}`)} title="Edit Logo">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(item._id, 'novice')} title="Delete Logo">
-                                    <Trash2 className="w-4 h-4 text-destructive" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, item.businessName)} title="Download Logo">
-                                    <Download className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </CardFooter>
-                            </Card>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </section>
-                </TabsContent>
-
-                <TabsContent value="pro_logos">
-                   <section>
-                    <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white"><Sparkles className="w-7 h-7 text-accent" /> Professional Logos</h2>
-                    {professionalGenerations.length === 0 ? (
-                      <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg bg-card">
-                         <ImageOff className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-lg text-muted-foreground">No logos found from the Professional generator.</p>
-                      </div>
-                    ) : (
-                       <ScrollArea className="h-[600px] p-1 -m-1">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {professionalGenerations.map((item) => (
-                            <Card key={item._id} className="overflow-hidden group transition-all hover:shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-                              <CardContent className="p-0 aspect-square flex items-center justify-center bg-secondary/20 group-hover:bg-secondary/30 transition-colors">
-                                <Image src={item.logoDataUri} alt={`Professional Logo based on: ${item.usedPrompt.substring(0,30)}...`} width={250} height={250} className="object-contain max-h-full max-w-full p-3 transition-transform group-hover:scale-105" data-ai-hint="pro generated logo" />
-                              </CardContent>
-                               <CardHeader className="p-3 space-y-0.5">
-                                <CardTitle className="text-base font-semibold truncate text-gray-900 dark:text-white" title={item.usedPrompt}>Used Prompt</CardTitle>
-                                <CardDescription className="text-xs text-gray-600 dark:text-gray-300 truncate" title={item.usedPrompt}>
-                                  {item.usedPrompt.substring(0,100)}{item.usedPrompt.length > 100 ? '...' : ''}
-                                </CardDescription>
-                              </CardHeader>
-                              <CardFooter className="p-3 flex justify-between items-center text-xs text-gray-600 dark:text-gray-300 border-t">
-                                <span>{format(new Date(item.createdAt), "MMM d, yyyy")}</span>
-                                <div className="flex gap-1">
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Pro Logo: ${item._id}`)} title="Edit Logo">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(item._id, 'professional')} title="Delete Logo">
-                                    <Trash2 className="w-4 h-4 text-destructive" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, "pro_logo")} title="Download Logo">
-                                    <Download className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </CardFooter>
-                            </Card>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </section>
-                </TabsContent>
-
-                <TabsContent value="image_editor_logos">
-                   <section>
-                    <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-white"><Edit3 className="w-7 h-7 text-accent" /> Image-Based Logos</h2>
-                    {imageEditorGenerations.length === 0 ? (
-                       <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg bg-card">
-                         <ImageOff className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-lg text-muted-foreground">No logos found from the Image-Based generator.</p>
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-[600px] p-1 -m-1">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {imageEditorGenerations.map((item) => (
-                            <Card key={item._id} className="overflow-hidden group transition-all hover:shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-                               <CardContent className="p-0 aspect-square flex items-center justify-center bg-secondary/20 group-hover:bg-secondary/30 transition-colors">
-                                <Image src={item.logoDataUri} alt={`Logo for ${item.businessName} (image-based)`} width={250} height={250} className="object-contain max-h-full max-w-full p-3 transition-transform group-hover:scale-105" data-ai-hint="image based logo" />
-                              </CardContent>
-                              <CardHeader className="p-3 space-y-0.5">
-                                <CardTitle className="text-base font-semibold truncate text-gray-900 dark:text-white" title={item.businessName}>{item.businessName}</CardTitle>
-                                <CardDescription className="text-xs text-gray-600 dark:text-gray-300 truncate" title={item.businessDescription}>
-                                  {item.businessDescription.substring(0,70)}{item.businessDescription.length > 70 ? '...' : ''}
-                                </CardDescription>
-                                 <CardDescription className="text-xs text-gray-600 dark:text-gray-300 truncate mt-0.5" title={item.sourceImageOriginalName || 'Uploaded source image'}>
-                                  Src: {item.sourceImageOriginalName ? item.sourceImageOriginalName.substring(0,30) : 'Uploaded Image'}{item.sourceImageOriginalName && item.sourceImageOriginalName.length > 30 ? '...' : ''}
-                                </CardDescription>
-                              </CardHeader>
-                              <CardFooter className="p-3 flex justify-between items-center text-xs text-gray-600 dark:text-gray-300 border-t">
-                                <span>{format(new Date(item.createdAt), "MMM d, yyyy")}</span>
-                                <div className="flex gap-1">
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Image Editor Logo: ${item._id}`)} title="Edit Logo">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(item._id, 'imageEditor')} title="Delete Logo">
-                                    <Trash2 className="w-4 h-4 text-destructive" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => downloadLogo(item.logoDataUri, item.businessName)} title="Download Logo">
-                                    <Download className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </CardFooter>
-                            </Card>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </section>
-                </TabsContent>
-
-                <TabsContent value="text_prompts">
-                  <section>
-                    <div className="flex items-center gap-2 mb-4">
-                      <History className="w-7 h-7 text-accent" />
-                      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Text Prompt History</h2>
-                    </div>
-                    {textPromptHistory.length === 0 ? (
-                      <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg bg-card">
-                        <History className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-lg text-muted-foreground">No text prompts used in the Professional Generator yet.</p>
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-[500px] p-4 border rounded-lg bg-card shadow-inner">
-                        <ul className="space-y-3">
-                          {textPromptHistory.map((prompt, index) => (
-                            <li
-                              key={index}
-                              className="p-3.5 bg-background border rounded-md shadow-sm hover:shadow-md transition-shadow flex justify-between items-center"
-                            >
-                              <p className="text-sm text-foreground leading-relaxed flex-grow">{prompt}</p>
-                              <div className="flex gap-1 ml-2">
-                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => alert(`Edit Text Prompt: ${prompt}`)} title="Edit Prompt">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleDeleteConfirmation(index.toString(), 'textPrompt')} title="Delete Prompt">
-                                  <Trash2 className="w-4 h-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </ScrollArea>
-                    )}
-                  </section>
-                </TabsContent>
-              </Tabs>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </TabsContent>
+
+          {/* Image Editor Tab */}
+          <TabsContent value="imageEditor" className="space-y-4 focus-visible:outline-none">
+            {isLoadingImageEditor ? (
+              <div className="flex justify-center p-12 glass-card rounded-2xl"><LoadingSpinner size="lg" /></div>
+            ) : imageEditorGenerations.length === 0 ? (
+              <div className="text-center p-12 glass-card rounded-2xl space-y-3">
+                <ImageOff className="w-10 h-10 text-slate-600 mx-auto" />
+                <p className="text-sm text-slate-400">No Image Editor generations yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {imageEditorGenerations.map((gen) => (
+                  <Card key={gen._id} className="glass-card border-white/10 rounded-2xl overflow-hidden flex flex-col justify-between">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="truncate text-base text-white">{gen.businessName}</CardTitle>
+                      <CardDescription className="text-xs text-slate-400 line-clamp-1">{gen.businessDescription}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 flex items-center justify-center bg-slate-950/60 my-2">
+                      <Image src={gen.logoDataUri} alt={gen.businessName} width={200} height={200} className="object-contain max-h-44 rounded-lg" />
+                    </CardContent>
+                    <CardFooter className="p-4 pt-2 flex items-center justify-between border-t border-white/5 text-xs text-slate-400">
+                      <span>{format(new Date(gen.createdAt), 'MMM d, yyyy')}</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => downloadLogo(gen.logoDataUri, gen.businessName)} className="h-8 px-2 text-cobalt hover:text-chalk">
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteConfirmation(gen._id, 'imageEditor')} className="h-8 px-2 text-rose-400 hover:text-rose-300">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Prompt History Tab */}
+          <TabsContent value="textHistory" className="space-y-4 focus-visible:outline-none">
+            {isLoadingHistory ? (
+              <div className="flex justify-center p-12 glass-card rounded-2xl"><LoadingSpinner size="lg" /></div>
+            ) : textPromptHistory.length === 0 ? (
+              <div className="text-center p-12 glass-card rounded-2xl space-y-3">
+                <History className="w-10 h-10 text-slate-600 mx-auto" />
+                <p className="text-sm text-slate-400">No prompt history saved yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {textPromptHistory.map((promptText, idx) => (
+                  <div key={idx} className="glass-card flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/5 p-4 text-xs text-slate-200">
+                    <span className="min-w-0 flex-1 truncate font-mono">{promptText}</span>
+                    <Button size="sm" variant="ghost" onClick={() => handleDeleteConfirmation(idx.toString(), 'textPrompt')} className="h-8 shrink-0 px-2 text-rose-400 hover:text-rose-300">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Delete Confirmation Dialog */}
         <DeleteConfirmationDialog
           isOpen={isDeleteConfirmOpen}
           onClose={() => setIsDeleteConfirmOpen(false)}
           onConfirm={handleConfirmDelete}
-          title={`Confirm Deletion of ${itemToDelete?.type === 'textPrompt' ? 'Prompt' : 'Logo'}`}
-          description={`Are you sure you want to delete this ${itemToDelete?.type === 'textPrompt' ? 'prompt' : 'logo'}? This action cannot be undone.`}
+          title="Delete Saved Generation"
+          description="Are you sure you want to delete this item? This action cannot be undone."
         />
       </div>
     </div>

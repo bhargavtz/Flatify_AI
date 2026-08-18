@@ -1,159 +1,151 @@
-
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Lightbulb, Palette, Settings, Users, BookOpen, HelpCircle as PageIcon, Edit3 } from 'lucide-react'; // Added Edit3
+import { Lightbulb, Palette, Settings, Users, BookOpen, HelpCircle as PageIcon, Edit3, Cpu, Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen pt-20 pb-16 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-purple-900/20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <Card className="max-w-4xl mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-xl overflow-hidden">
-          <CardHeader className="pb-4 bg-transparent">
-            <div className="flex items-center gap-3 mb-2">
-              <PageIcon className="w-16 h-16 text-primary" />
-              <div>
-                <CardTitle className="text-3xl font-bold text-gray-900 dark:text-white">Help & Documentation</CardTitle>
-                <CardDescription className="text-lg text-gray-600 dark:text-gray-300 mt-1">
-                  Welcome to Flatify AI! Find answers and learn how to make the most of our logo generator.
-                </CardDescription>
-              </div>
+    <div className="relative min-h-dvh min-w-0 overflow-x-hidden bg-ink p-4 text-chalk selection:bg-cobalt selection:text-chalk sm:p-8">
+      <div className="grain" />
+
+      <div className="max-w-5xl mx-auto space-y-10 relative z-10">
+        {/* Header Title Section */}
+        <div className="glass-card flex flex-col items-start justify-between gap-6 rounded-3xl border border-white/10 p-6 md:flex-row md:items-center md:p-10">
+          <div className="min-w-0 space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-md border border-cobalt/30 bg-cobalt/15 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-saffron">
+              <Sparkles className="w-3.5 h-3.5 text-cobalt" />
+              Flatify AI Documentation & Help
             </div>
-          </CardHeader>
-          <CardContent className="space-y-6 px-6 md:px-8 pb-8">
-            <Accordion type="single" collapsible className="w-full" defaultValue="what-is">
-              {/* Section: What is Flatify AI? */}
-              <AccordionItem value="what-is" className="border-b border-border/70">
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
-                  <div className="flex items-center gap-3">
-                    <Lightbulb className="w-6 h-6 text-accent" />
-                    What is Flatify AI?
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2 pb-4 pl-1">
-                  Flatify AI is an innovative application designed to help you generate unique, professional flat design logos for your business or projects. Using advanced AI, it simplifies the logo creation process, offering various modes to suit different needs.
-                </AccordionContent>
-              </AccordionItem>
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+              Studio Knowledge Base
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
+              Learn how to synthesize prompts, export lossless SVG vector logos, use multi-provider AI model routing, and get the most out of Flatify AI.
+            </p>
+          </div>
 
-              {/* Section: How It Works - General */}
-              <AccordionItem value="how-it-works-general" className="border-b border-border/70">
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
-                   <div className="flex items-center gap-3">
-                     <Settings className="w-6 h-6 text-accent" />
-                     How It Works (General)
-                   </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2 pb-4 pl-1 space-y-3">
-                  <p>Flatify AI uses generative AI models to create logos based on your input. You provide details about your business, design preferences, or even an existing image, and the AI generates a visual representation in the flat design style.</p>
-                  <p>Key principles of flat design emphasized by our AI include:</p>
-                  <ul className="list-disc list-inside pl-5 space-y-1.5 marker:text-primary">
-                    <li><strong>Minimalism:</strong> Clean and uncluttered designs.</li>
-                    <li><strong>Bold Geometric Shapes:</strong> Simple, clear forms.</li>
-                    <li><strong>Vibrant Colors:</strong> Often using a bright and distinct color palette.</li>
-                    <li><strong>Clean Typography:</strong> Legible and modern fonts.</li>
-                    <li><strong>No 3D Effects:</strong> Absence of gradients, shadows, or textures that create depth.</li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
+          <Link href="/generate" className="w-full md:w-auto">
+            <Button className="btn-press w-full rounded-md bg-cobalt px-6 py-6 text-xs font-semibold text-chalk hover:bg-[#4A70FF] md:w-auto">
+              <Zap className="w-4 h-4 mr-2" />
+              Launch Studio Generator
+            </Button>
+          </Link>
+        </div>
 
-              {/* Section: For Novice Users */}
-              <AccordionItem value="for-novices" className="border-b border-border/70">
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-6 h-6 text-accent" />
-                    For Small Business Owners (Novice Mode)
+        {/* Accordion FAQ & Help Sections */}
+        <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/10">
+          <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="what-is">
+            {/* Section 1: What is Flatify AI? */}
+            <AccordionItem value="what-is" className="border-b border-white/10 pb-2">
+              <AccordionTrigger className="text-lg md:text-xl font-bold text-white hover:no-underline py-3 hover:text-chalk transition-colors">
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cobalt/30 bg-cobalt/15">
+                    <Lightbulb className="w-5 h-5 text-cobalt" />
                   </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2 pb-4 pl-1 space-y-3">
-                  <p>If you're a small business owner, the "Novice" mode offers a guided experience:</p>
-                  <ul className="list-disc list-inside pl-5 space-y-1.5 marker:text-primary">
-                    <li><strong>Business Name:</strong> Enter the name of your business.</li>
-                    <li><strong>Business Description/Slogan:</strong> Describe your business, its services, or its core values. This helps the AI understand the context.</li>
-                    <li><strong>Optional Colors:</strong> You can suggest primary and secondary colors to guide the AI's color choices.</li>
-                    <li><strong>Generate:</strong> Click "Generate Logo," and the AI will create a logo based on your input, emphasizing flat design.</li>
-                  </ul>
-                  <p>The goal is to provide a simple, straightforward path to a professional-looking logo without needing design expertise.</p>
-                </AccordionContent>
-              </AccordionItem>
+                  What is Flatify AI Studio?
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-2 pb-4 pl-0 pt-2 text-sm leading-relaxed text-slate-300 sm:pl-12">
+                <p>Flatify AI Studio is a unified multimodal AI generation platform engineered for high-precision logo design, studio photography, 60FPS video, and 3D rendering.</p>
+                <p>Our intelligent routing backend distributes your prompt across top compute clusters (Flux.1 Pro, Midjourney v6.1, Sora Video, and Flatify Vector Pro) to deliver lossless SVG & 8K UHD renders.</p>
+              </AccordionContent>
+            </AccordionItem>
 
-              {/* Section: For Professional Users */}
-              <AccordionItem value="for-professionals" className="border-b border-border/70">
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
-                  <div className="flex items-center gap-3">
-                    <Palette className="w-6 h-6 text-accent" />
-                    For Freelance Designers (Professional Mode)
+            {/* Section 2: Small Business Mode */}
+            <AccordionItem value="for-novices" className="border-b border-white/10 pb-2">
+              <AccordionTrigger className="text-lg md:text-xl font-bold text-white hover:no-underline py-3 hover:text-chalk transition-colors">
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cobalt/30 bg-cobalt/15">
+                    <Users className="w-5 h-5 text-cobalt" />
                   </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2 pb-4 pl-1 space-y-3">
-                  <p>Freelance designers can leverage the "Professional" mode for more control and rapid ideation:</p>
-                  <ul className="list-disc list-inside pl-5 space-y-1.5 marker:text-primary">
-                    <li><strong>Detailed Prompting:</strong> Write specific, detailed prompts describing the desired logo. You can specify elements, style nuances (within flat design), imagery, and more.</li>
-                    <li><strong>Prompt Library:</strong> Select from example prompts to get started quickly.</li>
-                    <li><strong>Refine Prompt:</strong> Use the "Refine Prompt" feature to let the AI enhance your initial prompt.</li>
-                    <li><strong>Direct Generation:</strong> Generate logos directly from your original or refined prompts.</li>
-                    <li><strong>Prompt History:</strong> Access a history of your recently used prompts (saved to your account if logged in).</li>
-                  </ul>
-                  <p>This mode is designed for users who have a clearer vision or want to experiment with more nuanced AI inputs.</p>
-                </AccordionContent>
-              </AccordionItem>
-              
-              {/* Section: For Image-Based Generation */}
-              <AccordionItem value="for-image-editor" className="border-b border-border/70">
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
-                  <div className="flex items-center gap-3">
-                    <Edit3 className="w-6 h-6 text-accent" />
-                    Image-Based Generator (Remix Mode)
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2 pb-4 pl-1 space-y-3">
-                  <p>The "Image-Based Generator" mode allows you to create a new logo inspired by an existing image:</p>
-                  <ul className="list-disc list-inside pl-5 space-y-1.5 marker:text-primary">
-                    <li><strong>Upload Image:</strong> Upload a source image (e.g., a mood board item, an old logo, or an inspirational graphic). Max file size is 4MB.</li>
-                    <li><strong>Business Name & Description:</strong> Provide your business name and a description. The AI will tailor the new logo to this information while drawing inspiration from the uploaded image.</li>
-                    <li><strong>Generate:</strong> The AI will analyze the uploaded image's style, colors, and elements, then generate a *new and distinct* flat design logo suitable for your specified business.</li>
-                  </ul>
-                  <p>This mode is perfect for when you have a visual starting point and want the AI to reinterpret it into a fresh logo concept.</p>
-                </AccordionContent>
-              </AccordionItem>
+                  Small Business Guided Workflow (Novice Mode)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pb-4 pl-0 pt-2 text-sm leading-relaxed text-slate-300 sm:pl-12">
+                <p>Designed for founders and business owners who want a clean, professional brand identity in seconds without design experience:</p>
+                <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
+                  <li><strong className="text-white">Business Name & Slogan:</strong> Enter your brand details.</li>
+                  <li><strong className="text-white">Color Preferences:</strong> Pick primary and secondary brand accents.</li>
+                  <li><strong className="text-white">Instant Flat Generation:</strong> Click generate to get lossless, minimalist vector-styled logos.</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
 
-
-               {/* Section: Logo Generation Tips */}
-              <AccordionItem value="generation-tips" className="border-b border-border/70">
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="w-6 h-6 text-accent" />
-                    Tips for Great Logos
+            {/* Section 3: Pro Studio Mode */}
+            <AccordionItem value="for-professionals" className="border-b border-white/10 pb-2">
+              <AccordionTrigger className="text-lg md:text-xl font-bold text-white hover:no-underline py-3 hover:text-chalk transition-colors">
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cobalt/30 bg-cobalt/15">
+                    <Palette className="w-5 h-5 text-cobalt" />
                   </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2 pb-4 pl-1 space-y-3">
-                  <ul className="list-disc list-inside pl-5 space-y-1.5 marker:text-primary">
-                      <li><strong>Be Descriptive:</strong> The more context you give the AI (especially in Professional Mode and for image-based generation), the better it can understand your needs.</li>
-                      <li><strong>Keywords are Key:</strong> Use relevant keywords related to your industry, style (e.g., "minimalist," "geometric," "modern"), and desired imagery.</li>
-                      <li><strong>Iterate:</strong> Don't expect the perfect logo on the first try. Experiment with different descriptions, prompts, and colors. Use the "Save Logo" feature to keep track of good results.</li>
-                      <li><strong>Understand Flat Design:</strong> Keep the principles of flat design in mind. The AI is tuned for this style. Avoid requesting elements like complex gradients, 3D shadows, or photorealism.</li>
-                      <li><strong>Color Choices:</strong> While the AI can pick colors, specifying a color palette (especially in Novice mode or via prompt in Pro mode) can help align the logo with your brand.</li>
-                      <li><strong>Image Uploads (Remix Mode):</strong> Clear, high-quality source images tend to yield better inspirational results. The AI aims to capture the essence, not directly copy.</li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-              
-              {/* Section: Technical Details */}
-              <AccordionItem value="tech-details" className="border-border/70">
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
-                  <div className="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent w-6 h-6"><path d="M12 20V10M18 20V4M6 20V16"/></svg>
-                    Powered By
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2 pb-4 pl-1">
-                  Flatify AI leverages cutting-edge technology to bring your logo ideas to life. Our backend is powered by <strong>Genkit</strong>, a framework for building AI-powered applications, and utilizes Google's <strong>Gemini</strong> models for high-quality image generation and language understanding. Data is stored securely using MongoDB.
-                </AccordionContent>
-              </AccordionItem>
+                  Pro Studio Mode (Freelance Designers)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pb-4 pl-0 pt-2 text-sm leading-relaxed text-slate-300 sm:pl-12">
+                <p>Pro mode gives graphic designers full control over artistic prompts, aspect ratios, and parameter compiler settings:</p>
+                <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
+                  <li><strong className="text-white">Detailed Prompting:</strong> Control lighting style, aspect ratios, geometric line weight, and color palettes.</li>
+                  <li><strong className="text-white">AI Prompt Refinement:</strong> Auto-compile raw ideas into studio-grade prompts.</li>
+                  <li><strong className="text-white">Lossless Code Export:</strong> Export vector SVG paths directly for Figma or Illustrator.</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
 
-            </Accordion>
-          </CardContent>
-        </Card>
+            {/* Section 4: Image Remix Mode */}
+            <AccordionItem value="for-image-editor" className="border-b border-white/10 pb-2">
+              <AccordionTrigger className="text-lg md:text-xl font-bold text-white hover:no-underline py-3 hover:text-chalk transition-colors">
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cobalt/30 bg-cobalt/15">
+                    <Edit3 className="w-5 h-5 text-cobalt" />
+                  </div>
+                  Image Editor (Image Remix Mode)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pb-4 pl-0 pt-2 text-sm leading-relaxed text-slate-300 sm:pl-12">
+                <p>Upload a sketch, moodboard asset, or existing logo to condition new AI generations:</p>
+                <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
+                  <li><strong className="text-white">Upload Reference Image:</strong> Upload source files up to 4MB.</li>
+                  <li><strong className="text-white">Contextual Conditioning:</strong> The AI extracts geometry and color scheme to generate fresh vector concepts.</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Section 5: Prompting Tips */}
+            <AccordionItem value="generation-tips" className="border-b border-white/10 pb-2">
+              <AccordionTrigger className="text-lg md:text-xl font-bold text-white hover:no-underline py-3 hover:text-chalk transition-colors">
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cobalt/30 bg-cobalt/15">
+                    <BookOpen className="w-5 h-5 text-cobalt" />
+                  </div>
+                  Mastering Prompt Synthesis
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pb-4 pl-0 pt-2 text-sm leading-relaxed text-slate-300 sm:pl-12">
+                <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
+                  <li><strong className="text-white">Use Style Keywords:</strong> Specify keywords like <em>&quot;flat geometric vector&quot;</em>, <em>&quot;duotone color scheme&quot;</em>, <em>&quot;minimalist symbol&quot;</em>.</li>
+                  <li><strong className="text-white">Avoid 3D Overload:</strong> Flatify AI excels at clean 2D vector art. Avoid asking for complex drop shadows or heavy 3D textures when aiming for flat logos.</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Section 6: Technical Details */}
+            <AccordionItem value="tech-details" className="border-none">
+              <AccordionTrigger className="text-lg md:text-xl font-bold text-white hover:no-underline py-3 hover:text-chalk transition-colors">
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cobalt/30 bg-cobalt/15">
+                    <Cpu className="w-5 h-5 text-cobalt" />
+                  </div>
+                  Architecture & Compute Infrastructure
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4 pl-0 pt-2 text-sm leading-relaxed text-slate-300 sm:pl-12">
+                Flatify AI operates a multi-node routing engine integrated with OpenRouter, Genkit framework, and Google Gemini models. All generation assets are backed by secure MongoDB storage and Clerk user session authorization.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
       </div>
     </div>
   );
