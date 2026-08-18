@@ -39,6 +39,8 @@ export default function SignupPage() {
 
         <div className="w-full max-w-[min(28rem,100%)] overflow-x-hidden border border-chalk/10 bg-slateink p-2">
           <SignUp
+            routing="path"
+            path="/signup"
             appearance={{
               baseTheme: dark,
               elements: {
