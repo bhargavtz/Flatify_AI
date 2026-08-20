@@ -1,4 +1,3 @@
-// The directive tells the Next.js runtime that this code should only be executed on the server.
 'use server';
 
 /**
@@ -9,8 +8,8 @@
  * - RefineLogoPromptOutput - The return type for the refineLogoPrompt function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { requireSignedIn } from '@/lib/auth-api';
 
 const RefineLogoPromptInputSchema = z.object({
@@ -32,29 +31,23 @@ export async function refineLogoPrompt(input: RefineLogoPromptInput): Promise<Re
   return refineLogoPromptFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'refineLogoPromptPrompt',
-  input: {schema: RefineLogoPromptInputSchema},
-  output: {schema: RefineLogoPromptOutputSchema},
-  prompt: `You are an expert logo prompt engineer.
-
-  Your goal is to take a user's prompt and improve it so that it will generate better results from a text-to-image AI model.
-  Pay close attention to details that would improve the logo, such as specifying flat design principles like minimalism, bold geometric shapes, vibrant colors, clean typography, and the absence of gradients, shadows, or 3D effects.
-  Suggest specific keywords related to flat design, modern aesthetics, and current design trends. Provide details about specific shapes, colors, and typography.
-
-  Original Prompt: {{{prompt}}}
-
-  Refined Prompt: `,
-});
-
 const refineLogoPromptFlow = ai.defineFlow(
   {
     name: 'refineLogoPromptFlow',
     inputSchema: RefineLogoPromptInputSchema,
     outputSchema: RefineLogoPromptOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    const res = await ai.generate({
+      model: 'googleai/gemini-3.6-flash',
+      prompt: `You are an expert flat logo prompt engineer.
+Take the user's prompt and enhance it with flat design keywords, specific vector shapes, modern color schemes, and clean typography:
+
+Original Prompt: ${input.prompt}
+
+Return ONLY the refined prompt text with no quotation marks or meta commentary.`,
+    });
+
+    return { refinedPrompt: res.text.trim() || input.prompt };
   }
 );

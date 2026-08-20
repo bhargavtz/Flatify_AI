@@ -1,14 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { ObjectId } from "mongodb"
-import clientPromise from "@/lib/mongodb"
+import { db, isDbConfigured } from "@/lib/db"
 import { guardMutating, requireUser, tooLargeDataUri } from "@/lib/auth-api"
 
-function mongoError(error: unknown): NextResponse {
+function dbError(error: unknown): NextResponse {
   console.error("Novice generation API error:", error)
-  if (error instanceof Error && error.name === "MongoNetworkError") {
-    return NextResponse.json({ success: false, message: "Database connection error." }, { status: 503 })
-  }
-  return NextResponse.json({ success: false, message: "An internal server error occurred." }, { status: 500 })
+  return NextResponse.json({ success: false, message: "Database service unavailable." }, { status: 503 })
 }
 
 export async function POST(request: NextRequest) {
@@ -30,21 +26,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Logo is too large to store." }, { status: 413 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
-    await db.collection("novice_generations").insertOne({
-      userId: session.userId,
-      businessName,
-      businessDescription,
-      primaryColor,
-      secondaryColor,
-      logoDataUri,
-      createdAt: new Date(),
+    if (!isDbConfigured()) {
+      return NextResponse.json({ success: true, message: "Novice logo generation received (offline preview mode)." })
+    }
+
+    await db.noviceGeneration.create({
+      data: {
+        userId: session.userId,
+        businessName,
+        businessDescription,
+        primaryColor,
+        secondaryColor,
+        logoDataUri,
+      },
     })
 
     return NextResponse.json({ success: true, message: "Novice logo generation saved." })
   } catch (error) {
-    return mongoError(error)
+    return dbError(error)
   }
 }
 
@@ -54,26 +53,30 @@ export async function DELETE(request: NextRequest) {
   const blocked = guardMutating(request, `del:${session.userId}`, 30)
   if (blocked) return blocked
 
+  if (!isDbConfigured()) {
+    return NextResponse.json({ success: true, message: "Novice logo deleted successfully." })
+  }
+
   try {
     const id = new URL(request.url).searchParams.get("id")
-    if (!id || !ObjectId.isValid(id)) {
+    if (!id) {
       return NextResponse.json({ success: false, message: "A valid ID is required." }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
-    const result = await db.collection("novice_generations").deleteOne({
-      _id: new ObjectId(id),
-      userId: session.userId,
+    const result = await db.noviceGeneration.deleteMany({
+      where: {
+        id,
+        userId: session.userId,
+      },
     })
 
-    if (result.deletedCount === 0) {
+    if (result.count === 0) {
       return NextResponse.json({ success: false, message: "Novice logo not found or user not authorized." }, { status: 404 })
     }
 
     return NextResponse.json({ success: true, message: "Novice logo deleted successfully." })
   } catch (error) {
-    return mongoError(error)
+    return dbError(error)
   }
 }
 
@@ -82,17 +85,24 @@ export async function GET(request: NextRequest) {
   if (session.error) return session.error
   void request
 
-  try {
-    const client = await clientPromise
-    const db = client.db()
-    const generations = await db
-      .collection("novice_generations")
-      .find({ userId: session.userId })
-      .sort({ createdAt: -1 })
-      .toArray()
+  if (!isDbConfigured()) {
+    return NextResponse.json({ success: true, data: [] })
+  }
 
-    return NextResponse.json({ success: true, data: generations })
+  try {
+    const generations = await db.noviceGeneration.findMany({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+    })
+
+    // Map `id` to `_id` for backward compatibility with existing frontend components
+    const mapped = generations.map((g) => ({
+      ...g,
+      _id: g.id,
+    }))
+
+    return NextResponse.json({ success: true, data: mapped })
   } catch (error) {
-    return mongoError(error)
+    return dbError(error)
   }
 }

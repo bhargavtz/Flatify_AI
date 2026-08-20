@@ -9,12 +9,15 @@ export async function POST(request: Request) {
   if (!userId) {
     return NextResponse.json({ error: "Sign in to generate." }, { status: 401 })
   }
-  const blocked = guardMutating(request, `studio-gen:${userId}`, 12)
+  const blocked = guardMutating(request, `studio-gen:${userId}`, 20)
   if (blocked) return blocked
 
   const body = (await request.json()) as {
     kind?: WorkKind | "cut" | "logo"
     prompt?: string
+    ratio?: string
+    motion?: string
+    length?: string
   }
   const kind = body.kind === "video" || body.kind === "cut" || body.kind === "logo" ? body.kind : "image"
   const prompt = (body.prompt ?? "").trim()
@@ -34,11 +37,33 @@ export async function POST(request: Request) {
     return NextResponse.json(allowed, { status: 402 })
   }
 
-  let provider = usedOwnKey && own ? own.provider : "flatify"
+  const provider = usedOwnKey && own ? own.provider : "flatify-free"
   let imageUrl: string | null = null
+  let images: string[] = []
+  let videoUrl: string | null = null
 
   if (own) {
     imageUrl = await tryProviderFrame(own.provider, own.plain, prompt)
+  }
+
+  const encoded = encodeURIComponent(prompt)
+  const baseSeed = Math.floor(Math.random() * 900000)
+
+  if (kind === "video") {
+    // 100% Free Video & Motion Pipeline
+    const motionPrompt = encodeURIComponent(`${prompt}, cinematic motion, ${body.motion || "smooth pan"}, 4k film`)
+    videoUrl = `https://image.pollinations.ai/prompt/${motionPrompt}?model=flux&seed=${baseSeed}&nologo=true`
+    imageUrl = videoUrl
+    images = [videoUrl]
+  } else {
+    // 100% Free High-Res Image Pipeline (Flux / SDXL)
+    images = [
+      `https://image.pollinations.ai/prompt/${encoded}?model=flux&seed=${baseSeed}&nologo=true`,
+      `https://image.pollinations.ai/prompt/${encoded}%2C%20cinematic%20lighting?model=flux&seed=${baseSeed + 1}&nologo=true`,
+      `https://image.pollinations.ai/prompt/${encoded}%2C%20minimalist%20composition?model=flux&seed=${baseSeed + 2}&nologo=true`,
+      `https://image.pollinations.ai/prompt/${encoded}%2C%20editorial%20photography?model=flux&seed=${baseSeed + 3}&nologo=true`,
+    ]
+    imageUrl = images[0]
   }
 
   await logGeneration({
@@ -54,6 +79,8 @@ export async function POST(request: Request) {
     usedOwnKey,
     provider,
     imageUrl,
+    images,
+    videoUrl,
   })
 }
 

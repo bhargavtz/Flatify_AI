@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that generates a new logo similar to a provided source image, adapted for a user's business.
@@ -8,8 +7,8 @@
  * - GenerateSimilarLogoOutput - The return type for the generateSimilarLogo function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { requireSignedIn } from '@/lib/auth-api';
 
 const GenerateSimilarLogoInputSchema = z.object({
@@ -47,7 +46,15 @@ const generateSimilarLogoFlow = ai.defineFlow(
     outputSchema: GenerateSimilarLogoOutputSchema,
   },
   async (input) => {
-    let promptText = `Analyze the provided image. Then, generate a *new* flat design logo for a business named "${input.businessName}". This new logo should be conceptually inspired by the style, elements, or feel of the provided image, but tailored to the business description: "${input.businessDescription}". The final output must be a completely new logo, not just a modification of the input image. Adhere to flat design principles: minimalism, bold geometric shapes, vibrant colors, and clean typography, avoiding gradients or 3D effects.`;
+    let promptText = `You are an expert flat vector logo designer.
+Analyze the source design context and generate a *new* flat design SVG logo for:
+Business Name: "${input.businessName}"
+Description: "${input.businessDescription}"
+
+Strict Rules:
+1. Output ONLY valid XML SVG code wrapped inside \`\`\`xml ... \`\`\`.
+2. The SVG MUST have \`viewBox="0 0 512 512"\`, \`xmlns="http://www.w3.org/2000/svg"\`, width="100%", height="100%".
+3. Adhere to flat design principles: minimalism, bold geometric shapes, clean typography.`;
 
     if (input.colorPalette) {
       promptText += ` Use a ${input.colorPalette} color palette.`;
@@ -59,22 +66,30 @@ const generateSimilarLogoFlow = ai.defineFlow(
       promptText += ` The logo should have a ${input.logoShape} shape.`;
     }
 
-    const {media} = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-exp', // IMPORTANT: Image generation capable model
+    const res = await ai.generate({
+      model: 'googleai/gemini-3.6-flash',
       prompt: [
-        {media: {url: input.sourceImageUri}},
-        {
-          text: promptText
-        },
+        { media: { url: input.sourceImageUri } },
+        { text: promptText },
       ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'], // MUST provide both TEXT and IMAGE
-      },
     });
 
-    if (!media || !media.url) {
-      throw new Error('Image generation failed to produce a valid media object.');
+    const text = res.text || '';
+    const match = text.match(/```(?:xml|svg)?([\s\S]*?)```/) || [null, text];
+    let svg = (match[1] || text).trim();
+
+    if (!svg.includes('<svg')) {
+      const safeName = input.businessName.replace(/["<>]/g, '');
+      const initials = safeName.slice(0, 2).toUpperCase() || 'FL';
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <rect width="512" height="512" rx="128" fill="#10B981"/>
+  <circle cx="256" cy="220" r="110" fill="#ffffff" opacity="0.15"/>
+  <text x="256" y="245" font-family="system-ui, -apple-system, sans-serif" font-size="88" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">${initials}</text>
+  <text x="256" y="385" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="600" fill="#ffffff" text-anchor="middle" letter-spacing="2">${safeName}</text>
+</svg>`;
     }
-    return {logoDataUri: media.url};
+
+    const logoDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    return { logoDataUri };
   }
 );

@@ -1,38 +1,29 @@
 import { type NextRequest, NextResponse } from "next/server"
-import clientPromise from "@/lib/mongodb"
+import { db, isDbConfigured } from "@/lib/db"
 import { guardMutating, requireUser } from "@/lib/auth-api"
 
 const MAX_HISTORY_ITEMS = 15
 
-interface HistoryDoc {
-  clerkId: string
-  prompts: string[]
-  updatedAt: Date
-}
-
-function mongoError(error: unknown): NextResponse {
+function dbError(error: unknown): NextResponse {
   console.error("Prompt history API error:", error)
-  if (error instanceof Error && error.name === "MongoNetworkError") {
-    return NextResponse.json({ success: false, message: "Database connection error." }, { status: 503 })
-  }
-  return NextResponse.json({ success: false, message: "An internal server error occurred." }, { status: 500 })
-}
-
-async function historyCol() {
-  const client = await clientPromise
-  return client.db().collection<HistoryDoc>("prompt_histories")
+  return NextResponse.json({ success: false, message: "Database service unavailable." }, { status: 503 })
 }
 
 export async function GET() {
   const session = await requireUser()
   if (session.error) return session.error
 
+  if (!isDbConfigured()) {
+    return NextResponse.json({ success: true, promptHistory: [] })
+  }
+
   try {
-    const col = await historyCol()
-    const doc = await col.findOne({ clerkId: session.userId })
+    const doc = await db.userPromptHistory.findUnique({
+      where: { clerkId: session.userId },
+    })
     return NextResponse.json({ success: true, promptHistory: doc?.prompts ?? [] })
   } catch (error) {
-    return mongoError(error)
+    return dbError(error)
   }
 }
 
@@ -48,19 +39,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "A prompt is required." }, { status: 400 })
     }
 
-    const col = await historyCol()
-    const existing = await col.findOne({ clerkId: session.userId })
+    if (!isDbConfigured()) {
+      return NextResponse.json({ success: true, message: "Database offline (in-memory mode).", promptHistory: [prompt.trim()] })
+    }
+
+    const existing = await db.userPromptHistory.findUnique({
+      where: { clerkId: session.userId },
+    })
     const current = existing?.prompts ?? []
     const next = [prompt.trim(), ...current.filter((row) => row !== prompt.trim())].slice(0, MAX_HISTORY_ITEMS)
-    await col.updateOne(
-      { clerkId: session.userId },
-      { $set: { clerkId: session.userId, prompts: next, updatedAt: new Date() } },
-      { upsert: true }
-    )
+
+    await db.userPromptHistory.upsert({
+      where: { clerkId: session.userId },
+      update: { prompts: next },
+      create: { clerkId: session.userId, prompts: next },
+    })
 
     return NextResponse.json({ success: true, message: "Prompt history updated.", promptHistory: next })
   } catch (error) {
-    return mongoError(error)
+    return dbError(error)
   }
 }
 
@@ -70,13 +67,18 @@ export async function DELETE(request: NextRequest) {
   const blocked = guardMutating(request, `hist-del:${session.userId}`, 40)
   if (blocked) return blocked
 
+  if (!isDbConfigured()) {
+    return NextResponse.json({ success: true, message: "Prompt deleted successfully.", promptHistory: [] })
+  }
+
   try {
     const params = new URL(request.url).searchParams
     const promptToDelete = params.get("prompt")
     const indexParam = params.get("id")
 
-    const col = await historyCol()
-    const existing = await col.findOne({ clerkId: session.userId })
+    const existing = await db.userPromptHistory.findUnique({
+      where: { clerkId: session.userId },
+    })
     const current = existing?.prompts ?? []
 
     let next: string[]
@@ -95,14 +97,14 @@ export async function DELETE(request: NextRequest) {
       next = current.filter((_, i) => i !== index)
     }
 
-    await col.updateOne(
-      { clerkId: session.userId },
-      { $set: { clerkId: session.userId, prompts: next, updatedAt: new Date() } },
-      { upsert: true }
-    )
+    await db.userPromptHistory.upsert({
+      where: { clerkId: session.userId },
+      update: { prompts: next },
+      create: { clerkId: session.userId, prompts: next },
+    })
 
     return NextResponse.json({ success: true, message: "Prompt deleted successfully.", promptHistory: next })
   } catch (error) {
-    return mongoError(error)
+    return dbError(error)
   }
 }

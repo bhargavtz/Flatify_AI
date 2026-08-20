@@ -1,7 +1,7 @@
 'use server';
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { requireSignedIn } from '@/lib/auth-api';
 
 const GenerateSuggestionsInputSchema = z.object({
@@ -26,7 +26,7 @@ const generateSuggestionsFlow = ai.defineFlow(
     inputSchema: GenerateSuggestionsInputSchema,
     outputSchema: GenerateSuggestionsOutputSchema,
   },
-  async input => {
+  async (input) => {
     let promptText = '';
     switch (input.suggestionType) {
       case 'description':
@@ -46,11 +46,8 @@ const generateSuggestionsFlow = ai.defineFlow(
     }
 
     const llmResponse = await ai.generate({
-      model: 'googleai/gemini-1.5-flash', // Using a text-based model for suggestions
+      model: 'googleai/gemini-3.6-flash',
       prompt: promptText,
-      config: {
-        responseModalities: ['TEXT'],
-      },
     });
 
     const suggestions = llmResponse.text.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);

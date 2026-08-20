@@ -22,6 +22,8 @@ export default function VideoDesk() {
   const [ratio, setRatio] = useState<(typeof RATIOS)[number]>("16:9")
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(false)
+  const [videoPreview, setVideoPreview] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [note, setNote] = useState("")
   const { isSignedIn } = useUser()
   const router = useRouter()
@@ -43,13 +45,14 @@ export default function VideoDesk() {
       const res = await fetch("/api/studio/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "video", prompt }),
+        body: JSON.stringify({ kind: "video", prompt, motion, length, ratio }),
       })
-      const json = (await res.json()) as { error?: string }
+      const json = (await res.json()) as { error?: string; videoUrl?: string; imageUrl?: string }
       if (!res.ok) {
         setNote(json.error ?? "Could not generate.")
         return
       }
+      setVideoPreview(json.videoUrl || json.imageUrl || null)
       setReady(true)
     } catch {
       setNote("Could not generate.")
@@ -148,23 +151,44 @@ export default function VideoDesk() {
 
       <div className="order-1 min-w-0 lg:order-2">
         <div
-          className={`relative overflow-hidden border border-chalk/10 bg-slateink ${
+          className={`relative overflow-hidden rounded-md border border-chalk/10 bg-slateink ${
             ratio === "9:16" ? "mx-auto aspect-[9/16] max-w-[280px] sm:max-w-[320px]" : "aspect-video w-full"
           }`}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-cobalt/40 via-ink to-saffron/20" />
-          <div className="absolute inset-x-8 top-1/3 h-px bg-chalk/20" />
-          <div className="absolute inset-y-10 left-1/4 w-px bg-chalk/10" />
-          <button
-            type="button"
-            className="btn-press absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-chalk text-ink"
-            aria-label="Preview play"
-          >
-            <Play className="h-5 w-5 translate-x-0.5" aria-hidden="true" />
-          </button>
+          {videoPreview ? (
+            <div className="relative h-full w-full">
+              <img
+                src={videoPreview}
+                alt="Generated clip preview"
+                className={`h-full w-full object-cover transition-transform duration-700 ${isPlaying ? "scale-105" : "scale-100"}`}
+              />
+              <button
+                type="button"
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="btn-press absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-chalk/90 text-ink shadow-lg backdrop-blur hover:bg-chalk"
+                aria-label={isPlaying ? "Pause" : "Play"}
+              >
+                <Play className={`h-5 w-5 translate-x-0.5 ${isPlaying ? "text-cobalt" : ""}`} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-gradient-to-br from-cobalt/40 via-ink to-saffron/20" />
+              <div className="absolute inset-x-8 top-1/3 h-px bg-chalk/20" />
+              <div className="absolute inset-y-10 left-1/4 w-px bg-chalk/10" />
+              <button
+                type="button"
+                className="btn-press absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-chalk text-ink"
+                aria-label="Preview play"
+              >
+                <Play className="h-5 w-5 translate-x-0.5" aria-hidden="true" />
+              </button>
+            </>
+          )}
+
           <div className="absolute inset-x-4 bottom-4">
             <div className="h-0.5 overflow-hidden bg-chalk/20">
-              <div className={`h-full bg-saffron ${busy ? "w-2/3" : "w-1/5"}`} />
+              <div className={`h-full bg-saffron transition-all duration-300 ${busy ? "w-2/3" : isPlaying ? "w-full" : "w-1/5"}`} />
             </div>
             <div className="mt-2 flex justify-between font-mono text-[10px] uppercase tracking-wider text-chalk/80">
               <span>{length}</span>

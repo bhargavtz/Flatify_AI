@@ -14,7 +14,7 @@ const PAPERS = [
   { id: "film", label: "Print grain" },
 ]
 
-const FRAMES = [
+const DEFAULT_FRAMES = [
   { id: "a", bg: "bg-cobalt", shift: "translate-x-2" },
   { id: "b", bg: "bg-saffron", shift: "-translate-x-1" },
   { id: "c", bg: "bg-coral", shift: "translate-y-1" },
@@ -27,6 +27,7 @@ export default function ImageDesk() {
   const [paper, setPaper] = useState("held")
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(false)
+  const [generatedImages, setGeneratedImages] = useState<string[]>([])
   const [note, setNote] = useState("")
   const { isSignedIn } = useUser()
   const router = useRouter()
@@ -48,12 +49,17 @@ export default function ImageDesk() {
       const res = await fetch("/api/studio/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "image", prompt }),
+        body: JSON.stringify({ kind: "image", prompt, ratio }),
       })
-      const json = (await res.json()) as { error?: string }
+      const json = (await res.json()) as { error?: string; images?: string[]; imageUrl?: string }
       if (!res.ok) {
         setNote(json.error ?? "Could not generate.")
         return
+      }
+      if (json.images && json.images.length > 0) {
+        setGeneratedImages(json.images)
+      } else if (json.imageUrl) {
+        setGeneratedImages([json.imageUrl])
       }
       setReady(true)
     } catch {
@@ -140,19 +146,31 @@ export default function ImageDesk() {
           className={`grid gap-3 ${ratio === "9:16" ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2"}`}
           aria-busy={busy}
         >
-          {FRAMES.map((frame, i) => (
-            <div
-              key={frame.id}
-              className={`relative overflow-hidden border border-chalk/10 ${
-                ratio === "1:1" ? "aspect-square" : ratio === "9:16" ? "aspect-[9/16]" : ratio === "4:3" ? "aspect-[4/3]" : "aspect-video"
-              } ${frame.bg} ${busy ? "opacity-60" : ""}`}
-            >
-              <div className={`absolute inset-8 border border-ink/20 ${frame.shift}`} />
-              <span className="absolute left-3 top-3 font-mono text-[10px] uppercase tracking-wider text-ink/70">
-                Take 0{i + 1}
-              </span>
-            </div>
-          ))}
+          {(generatedImages.length > 0 ? generatedImages : DEFAULT_FRAMES).map((item, i) => {
+            const isGenerated = typeof item === "string"
+            return (
+              <div
+                key={isGenerated ? item : item.id}
+                className={`relative overflow-hidden rounded-md border border-chalk/10 ${
+                  ratio === "1:1" ? "aspect-square" : ratio === "9:16" ? "aspect-[9/16]" : ratio === "4:3" ? "aspect-[4/3]" : "aspect-video"
+                } ${isGenerated ? "bg-slateink" : item.bg} ${busy ? "opacity-60" : ""}`}
+              >
+                {isGenerated ? (
+                  <img
+                    src={item}
+                    alt={`Take 0${i + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className={`absolute inset-8 border border-ink/20 ${item.shift}`} />
+                )}
+                <span className="absolute left-3 top-3 rounded bg-ink/60 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-chalk">
+                  Take 0{i + 1}
+                </span>
+              </div>
+            )
+          })}
         </div>
         <p className="mt-4 line-clamp-2 font-mono text-[11px] text-mist">
           {prompt} · {ratio} · {PAPERS.find((p) => p.id === paper)?.label}

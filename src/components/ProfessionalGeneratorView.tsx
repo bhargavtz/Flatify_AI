@@ -47,6 +47,17 @@ export function ProfessionalGeneratorView() {
   const { toast } = useToast();
   const { user, isLoaded, isSignedIn } = useUser();
 
+  const loadHistoryFromLocalStorage = () => {
+    try {
+      const storedHistory = localStorage.getItem('flatify_promptHistory');
+      if (storedHistory) {
+        setPromptHistory(JSON.parse(storedHistory));
+      }
+    } catch (error) {
+      console.error("Failed to load prompt history from localStorage:", error);
+    }
+  };
+
   useEffect(() => {
     const loadHistory = async () => {
       if (isLoaded && isSignedIn && user?.id) {
@@ -68,17 +79,6 @@ export function ProfessionalGeneratorView() {
     };
     loadHistory();
   }, [isLoaded, isSignedIn, user]);
-  
-  const loadHistoryFromLocalStorage = () => {
-    try {
-      const storedHistory = localStorage.getItem('flatify_promptHistory');
-      if (storedHistory) {
-        setPromptHistory(JSON.parse(storedHistory));
-      }
-    } catch (error) {
-      console.error("Failed to load prompt history from localStorage:", error);
-    }
-  };
 
 
   const updatePromptHistory = async (newPrompt: string) => {

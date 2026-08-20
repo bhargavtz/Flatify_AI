@@ -11,7 +11,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 export default function RoleSelectPage() {
   const router = useRouter();
   const { userRole, setUserRole, isLoading: isLoadingRole } = useUserRole();
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useAuth();
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function RoleSelectPage() {
         onClick={() => signOut(() => router.push('/'))} 
         className="mt-8 text-muted-foreground hover:text-foreground"
       >
-        Not {isLoaded && isSignedIn ? `(${useUser().user?.emailAddresses[0]?.emailAddress})` : ''}? Sign Out
+        Not {isLoaded && isSignedIn ? `(${user?.emailAddresses[0]?.emailAddress})` : ''}? Sign Out
       </Button>
     </div>
   );

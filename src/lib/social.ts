@@ -1,6 +1,5 @@
-import { type Collection, type Db } from "mongodb"
 import { auth, currentUser } from "@clerk/nextjs/server"
-import clientPromise from "@/lib/mongodb"
+import { db, isDbConfigured } from "@/lib/db"
 import { SEED_AUTHORS, SEED_COMMENTS, SEED_WORKS } from "@/lib/explore-seed"
 import { isSafeMediaUrl, storeUserMedia } from "@/lib/storage"
 import {
@@ -13,172 +12,132 @@ import {
   type PublicWork,
   type WorkKind,
 } from "@/lib/social-types"
-
-interface WorkDoc {
-  slug: string
-  clerkId: string
-  kind: WorkKind
-  prompt: string
-  tagline: string
-  ratio: string
-  paper?: string
-  motion?: string
-  length?: string
-  palette: [string, string, string]
-  likeCount: number
-  commentCount: number
-  featured: boolean
-  createdAt: Date
-  author: PublicAuthor
-}
-
-interface ProfileDoc extends PublicAuthor {
-  clerkId: string
-  bio?: string
-  coverUrl?: string | null
-  location?: string
-  website?: string
-  updatedAt: Date
-}
-
-interface LikeDoc {
-  slug: string
-  clerkId: string
-}
-
-interface CommentDoc {
-  _id?: { toString(): string }
-  slug: string
-  clerkId: string
-  body: string
-  createdAt: Date
-  author: PublicComment["author"]
-}
-
-async function studioDb(): Promise<Db | null> {
-  try {
-    const client = await clientPromise
-    return client.db()
-  } catch (error) {
-    console.error("Studio social DB unavailable:", error)
-    return null
-  }
-}
-
-async function cols(db: Db): Promise<{
-  works: Collection<WorkDoc>
-  profiles: Collection<ProfileDoc>
-  likes: Collection<LikeDoc>
-  comments: Collection<CommentDoc>
-}> {
-  const works = db.collection<WorkDoc>("studio_works")
-  const profiles = db.collection<ProfileDoc>("studio_profiles")
-  const likes = db.collection<LikeDoc>("studio_likes")
-  const comments = db.collection<CommentDoc>("studio_comments")
-  return { works, profiles, likes, comments }
-}
+import type { StudioProfile, StudioWork } from "@prisma/client"
 
 let seeded = false
 
-async function ensureSeed(db: Db): Promise<void> {
-  if (seeded) return
-  const { works, profiles, comments } = await cols(db)
+async function ensureSeed(): Promise<void> {
+  if (seeded || !isDbConfigured()) return
+  try {
+    const count = await db.studioWork.count()
+    if (count > 0) {
+      seeded = true
+      return
+    }
 
-  await Promise.all(
-    SEED_AUTHORS.map((author) =>
-      profiles.updateOne(
-        { username: author.username },
-        {
-          $setOnInsert: {
-            clerkId: `seed:${author.username}`,
-            ...author,
-            updatedAt: new Date(),
-          },
+    for (const author of SEED_AUTHORS) {
+      await db.studioProfile.upsert({
+        where: { username: author.username },
+        update: {},
+        create: {
+          clerkId: `seed:${author.username}`,
+          username: author.username,
+          displayName: author.displayName,
+          tagline: author.tagline,
+          avatarUrl: author.avatarUrl,
         },
-        { upsert: true }
-      )
-    )
-  )
+      })
+    }
 
-  await Promise.all(
-    SEED_WORKS.map((work) =>
-      works.updateOne(
-        { slug: work.slug },
-        {
-          $setOnInsert: {
-            slug: work.slug,
-            clerkId: `seed:${work.author.username}`,
-            kind: work.kind,
-            prompt: work.prompt,
-            tagline: work.tagline,
-            ratio: work.ratio,
-            paper: work.paper,
-            motion: work.motion,
-            length: work.length,
-            palette: work.palette,
-            likeCount: work.likeCount,
-            commentCount: work.commentCount,
-            featured: work.featured,
-            createdAt: new Date(work.createdAt),
-            author: work.author,
-          },
+    for (const work of SEED_WORKS) {
+      await db.studioWork.upsert({
+        where: { slug: work.slug },
+        update: {},
+        create: {
+          slug: work.slug,
+          clerkId: `seed:${work.author.username}`,
+          kind: work.kind,
+          prompt: work.prompt,
+          tagline: work.tagline,
+          ratio: work.ratio,
+          paper: work.paper,
+          motion: work.motion,
+          length: work.length,
+          palette: work.palette,
+          likeCount: work.likeCount,
+          commentCount: work.commentCount,
+          featured: work.featured,
+          createdAt: new Date(work.createdAt),
         },
-        { upsert: true }
-      )
-    )
-  )
+      })
+    }
 
-  await Promise.all(
-    SEED_COMMENTS.map((comment) =>
-      comments.updateOne(
-        { slug: comment.slug, body: comment.body, "author.username": comment.author.username },
-        {
-          $setOnInsert: {
-            slug: comment.slug,
-            clerkId: `seed:${comment.author.username}`,
-            body: comment.body,
-            createdAt: new Date(comment.createdAt),
-            author: comment.author,
-          },
+    for (const comment of SEED_COMMENTS) {
+      await db.studioComment.create({
+        data: {
+          slug: comment.slug,
+          clerkId: `seed:${comment.author.username}`,
+          authorUsername: comment.author.username,
+          authorName: comment.author.displayName,
+          authorAvatarUrl: comment.author.avatarUrl,
+          body: comment.body,
+          createdAt: new Date(comment.createdAt),
         },
-        { upsert: true }
-      )
-    )
-  )
-
-  seeded = true
+      })
+    }
+    seeded = true
+  } catch (error) {
+    console.error("Studio seed error:", error)
+  }
 }
 
-function toPublicWork(doc: WorkDoc, liked: boolean): PublicWork {
+function toPublicWork(doc: StudioWork, profileMap: Map<string, StudioProfile>, liked: boolean): PublicWork {
+  const profile = profileMap.get(doc.clerkId)
+  const author: PublicAuthor = profile
+    ? {
+        username: profile.username,
+        displayName: profile.displayName,
+        tagline: profile.tagline,
+        avatarUrl: profile.avatarUrl,
+      }
+    : {
+        username: "maker",
+        displayName: "Studio maker",
+        tagline: "Frames on the table.",
+        avatarUrl: null,
+      }
+
   return {
     slug: doc.slug,
-    kind: doc.kind,
+    kind: doc.kind as WorkKind,
     prompt: doc.prompt,
     tagline: doc.tagline,
     ratio: doc.ratio,
-    paper: doc.paper,
-    motion: doc.motion,
-    length: doc.length,
-    palette: doc.palette,
+    paper: doc.paper ?? undefined,
+    motion: doc.motion ?? undefined,
+    length: doc.length ?? undefined,
+    palette: (doc.palette.length === 3 ? doc.palette : ["#222", "#444", "#888"]) as [string, string, string],
     likeCount: doc.likeCount,
     commentCount: doc.commentCount,
     featured: doc.featured,
     createdAt: doc.createdAt.toISOString(),
-    author: doc.author,
+    author,
     liked,
   }
 }
 
-async function likedSet(db: Db, clerkId: string | null, slugs: string[]): Promise<Set<string>> {
-  if (!clerkId || slugs.length === 0) return new Set()
-  const { likes } = await cols(db)
-  const rows = await likes.find({ clerkId, slug: { $in: slugs } }).toArray()
-  return new Set(rows.map((row) => row.slug))
+async function likedSet(clerkId: string | null, slugs: string[]): Promise<Set<string>> {
+  if (!clerkId || slugs.length === 0 || !isDbConfigured()) return new Set()
+  try {
+    const rows = await db.studioLike.findMany({
+      where: {
+        clerkId,
+        slug: { in: slugs },
+      },
+      select: { slug: true },
+    })
+    return new Set(rows.map((row) => row.slug))
+  } catch {
+    return new Set()
+  }
 }
 
-export async function listWorks(kind: WorkKind | "all", sort: ExploreSort, clerkId: string | null): Promise<PublicWork[]> {
-  const db = await studioDb()
-  if (!db) {
+export async function listWorks(
+  kind: WorkKind | "all",
+  sort: ExploreSort,
+  clerkId: string | null
+): Promise<PublicWork[]> {
+  if (!isDbConfigured()) {
     const rows = kind === "all" ? SEED_WORKS : SEED_WORKS.filter((work) => work.kind === kind)
     const ordered = [...rows].sort((a, b) =>
       sort === "loved" ? b.likeCount - a.likeCount : b.createdAt.localeCompare(a.createdAt)
@@ -186,49 +145,94 @@ export async function listWorks(kind: WorkKind | "all", sort: ExploreSort, clerk
     return ordered
   }
 
-  await ensureSeed(db)
-  const { works } = await cols(db)
-  const cursor = kind === "all" ? works.find({}) : works.find({ kind })
-  const docs =
-    sort === "loved"
-      ? await cursor.sort({ likeCount: -1, createdAt: -1 }).limit(80).toArray()
-      : await cursor.sort({ createdAt: -1 }).limit(80).toArray()
-  const liked = await likedSet(db, clerkId, docs.map((doc) => doc.slug))
-  return docs.map((doc) => toPublicWork(doc, liked.has(doc.slug)))
+  try {
+    await ensureSeed()
+    const where = kind === "all" ? {} : { kind }
+    const orderBy = sort === "loved" ? [{ likeCount: "desc" as const }, { createdAt: "desc" as const }] : [{ createdAt: "desc" as const }]
+
+    const docs = await db.studioWork.findMany({
+      where,
+      orderBy,
+      take: 80,
+    })
+
+    const clerkIds = Array.from(new Set(docs.map((d) => d.clerkId)))
+    const profiles = await db.studioProfile.findMany({
+      where: { clerkId: { in: clerkIds } },
+    })
+    const profileMap = new Map(profiles.map((p) => [p.clerkId, p]))
+
+    const liked = await likedSet(
+      clerkId,
+      docs.map((doc) => doc.slug)
+    )
+    return docs.map((doc) => toPublicWork(doc, profileMap, liked.has(doc.slug)))
+  } catch (error) {
+    console.error("Studio listWorks error:", error)
+    const rows = kind === "all" ? SEED_WORKS : SEED_WORKS.filter((work) => work.kind === kind)
+    return [...rows].sort((a, b) =>
+      sort === "loved" ? b.likeCount - a.likeCount : b.createdAt.localeCompare(a.createdAt)
+    )
+  }
 }
 
 export async function getWork(slug: string, clerkId: string | null): Promise<PublicWork | null> {
-  const db = await studioDb()
-  if (!db) {
+  if (!isDbConfigured()) {
     return SEED_WORKS.find((work) => work.slug === slug) ?? null
   }
-  await ensureSeed(db)
-  const { works } = await cols(db)
-  const doc = await works.findOne({ slug })
-  if (!doc) return null
-  const liked = await likedSet(db, clerkId, [slug])
-  return toPublicWork(doc, liked.has(slug))
+
+  try {
+    await ensureSeed()
+    const doc = await db.studioWork.findUnique({
+      where: { slug },
+    })
+    if (!doc) return null
+
+    const profile = await db.studioProfile.findUnique({
+      where: { clerkId: doc.clerkId },
+    })
+    const profileMap = new Map<string, StudioProfile>()
+    if (profile) profileMap.set(profile.clerkId, profile)
+
+    const liked = await likedSet(clerkId, [slug])
+    return toPublicWork(doc, profileMap, liked.has(slug))
+  } catch (error) {
+    console.error("Studio getWork error:", error)
+    return SEED_WORKS.find((work) => work.slug === slug) ?? null
+  }
 }
 
 export async function listComments(slug: string): Promise<PublicComment[]> {
-  const db = await studioDb()
-  if (!db) {
+  if (!isDbConfigured()) {
     return SEED_COMMENTS.filter((comment) => comment.slug === slug).map(({ slug: _s, ...rest }) => rest)
   }
-  await ensureSeed(db)
-  const { comments } = await cols(db)
-  const docs = await comments.find({ slug }).sort({ createdAt: 1 }).limit(80).toArray()
-  return docs.map((doc) => ({
-    id: doc._id ? doc._id.toString() : `${doc.slug}-${doc.createdAt.getTime()}`,
-    body: doc.body,
-    createdAt: doc.createdAt.toISOString(),
-    author: doc.author,
-  }))
+
+  try {
+    await ensureSeed()
+    const docs = await db.studioComment.findMany({
+      where: { slug },
+      orderBy: { createdAt: "asc" },
+      take: 80,
+    })
+
+    return docs.map((doc) => ({
+      id: doc.id,
+      body: doc.body,
+      createdAt: doc.createdAt.toISOString(),
+      author: {
+        username: doc.authorUsername,
+        displayName: doc.authorName,
+        avatarUrl: doc.authorAvatarUrl,
+      },
+    }))
+  } catch (error) {
+    console.error("Studio listComments error:", error)
+    return SEED_COMMENTS.filter((comment) => comment.slug === slug).map(({ slug: _s, ...rest }) => rest)
+  }
 }
 
 export async function getProfile(username: string, clerkId: string | null): Promise<PublicProfile | null> {
-  const db = await studioDb()
-  if (!db) {
+  if (!isDbConfigured()) {
     const author = SEED_AUTHORS.find((row) => row.username === username)
     if (!author) return null
     const works = SEED_WORKS.filter((work) => work.author.username === username)
@@ -242,23 +246,41 @@ export async function getProfile(username: string, clerkId: string | null): Prom
       works,
     }
   }
-  await ensureSeed(db)
-  const { profiles, works } = await cols(db)
-  const profile = await profiles.findOne({ username })
-  if (!profile) return null
-  const docs = await works.find({ "author.username": username }).sort({ createdAt: -1 }).limit(40).toArray()
-  const liked = await likedSet(db, clerkId, docs.map((doc) => doc.slug))
-  return {
-    username: profile.username,
-    displayName: profile.displayName,
-    tagline: profile.tagline,
-    avatarUrl: publicMedia(profile.avatarUrl),
-    bio: profile.bio ?? "",
-    coverUrl: publicMedia(profile.coverUrl),
-    location: profile.location ?? "",
-    website: safeWebsite(profile.website ?? ""),
-    workCount: docs.length,
-    works: docs.map((doc) => toPublicWork(doc, liked.has(doc.slug))),
+
+  try {
+    await ensureSeed()
+    const profile = await db.studioProfile.findUnique({
+      where: { username },
+    })
+    if (!profile) return null
+
+    const docs = await db.studioWork.findMany({
+      where: { clerkId: profile.clerkId },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    })
+
+    const profileMap = new Map<string, StudioProfile>([[profile.clerkId, profile]])
+    const liked = await likedSet(
+      clerkId,
+      docs.map((doc) => doc.slug)
+    )
+
+    return {
+      username: profile.username,
+      displayName: profile.displayName,
+      tagline: profile.tagline,
+      avatarUrl: publicMedia(profile.avatarUrl),
+      bio: profile.bio ?? "",
+      coverUrl: publicMedia(profile.coverUrl),
+      location: profile.location ?? "",
+      website: safeWebsite(profile.website ?? ""),
+      workCount: docs.length,
+      works: docs.map((doc) => toPublicWork(doc, profileMap, liked.has(doc.slug))),
+    }
+  } catch (error) {
+    console.error("Studio getProfile error:", error)
+    return null
   }
 }
 
@@ -291,47 +313,63 @@ function publicMedia(url: string | null | undefined): string | null {
 export async function upsertMyProfile(): Promise<PublicAuthor | null> {
   const user = await currentUser()
   if (!user) return null
-  const db = await studioDb()
-  if (!db) return null
-
-  const { profiles } = await cols(db)
-  const existing = await profiles.findOne({ clerkId: user.id })
-  if (existing) {
+  if (!isDbConfigured()) {
     return {
-      username: existing.username,
-      displayName: existing.displayName,
-      tagline: existing.tagline,
-      avatarUrl: existing.avatarUrl,
+      username: user.username || `maker.${user.id.slice(-6).toLowerCase()}`,
+      displayName: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.username || "Studio maker",
+      tagline: "Frames on the table.",
+      avatarUrl: user.imageUrl ?? null,
     }
   }
 
-  const displayName =
-    `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
-    user.username ||
-    "Studio maker"
-  let username = handleFromUser({
-    username: user.username,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    id: user.id,
-  })
+  try {
+    const existing = await db.studioProfile.findUnique({
+      where: { clerkId: user.id },
+    })
 
-  const taken = await profiles.findOne({ username })
-  if (taken) username = `${username}.${user.id.slice(-4).toLowerCase()}`
+    if (existing) {
+      return {
+        username: existing.username,
+        displayName: existing.displayName,
+        tagline: existing.tagline,
+        avatarUrl: existing.avatarUrl,
+      }
+    }
 
-  const author: PublicAuthor = {
-    username,
-    displayName,
-    tagline: "Frames on the table.",
-    avatarUrl: user.imageUrl ?? null,
+    const displayName =
+      `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+      user.username ||
+      "Studio maker"
+    let username = handleFromUser({
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      id: user.id,
+    })
+
+    const taken = await db.studioProfile.findUnique({ where: { username } })
+    if (taken) username = `${username}.${user.id.slice(-4).toLowerCase()}`
+
+    const created = await db.studioProfile.create({
+      data: {
+        clerkId: user.id,
+        username,
+        displayName,
+        tagline: "Frames on the table.",
+        avatarUrl: user.imageUrl ?? null,
+      },
+    })
+
+    return {
+      username: created.username,
+      displayName: created.displayName,
+      tagline: created.tagline,
+      avatarUrl: created.avatarUrl,
+    }
+  } catch (error) {
+    console.error("Studio upsertMyProfile error:", error)
+    return null
   }
-
-  await profiles.insertOne({
-    clerkId: user.id,
-    ...author,
-    updatedAt: new Date(),
-  })
-  return author
 }
 
 export async function updateMyProfile(input: {
@@ -345,72 +383,67 @@ export async function updateMyProfile(input: {
 }): Promise<PublicAuthor | null> {
   const { userId } = await auth()
   if (!userId) return null
-  const db = await studioDb()
-  if (!db) return null
+  if (!isDbConfigured()) return null
+
   await upsertMyProfile()
-  const { profiles, works } = await cols(db)
 
-  const patch: Partial<ProfileDoc> = { updatedAt: new Date() }
-  if (input.tagline !== undefined) patch.tagline = input.tagline.trim().slice(0, 120) || "Frames on the table."
-  if (input.displayName !== undefined) {
-    const name = input.displayName.trim().slice(0, 48)
-    if (name) patch.displayName = name
-  }
-  if (input.bio !== undefined) patch.bio = input.bio.trim().slice(0, 400)
-  if (input.location !== undefined) patch.location = input.location.trim().slice(0, 80)
-  if (input.website !== undefined) {
-    patch.website = safeWebsite(input.website)
-  }
-  if (input.avatarUrl !== undefined) {
-    if (input.avatarUrl === null || input.avatarUrl === "") {
-      patch.avatarUrl = null
-    } else {
-      const stored = await storeUserMedia(userId, "avatar", input.avatarUrl)
-      if (typeof stored === "object") return null
-      patch.avatarUrl = stored
+  try {
+    const data: Partial<StudioProfile> = {}
+    if (input.tagline !== undefined) data.tagline = input.tagline.trim().slice(0, 120) || "Frames on the table."
+    if (input.displayName !== undefined) {
+      const name = input.displayName.trim().slice(0, 48)
+      if (name) data.displayName = name
     }
-  }
-  if (input.coverUrl !== undefined) {
-    if (input.coverUrl === null || input.coverUrl === "") {
-      patch.coverUrl = null
-    } else {
-      const stored = await storeUserMedia(userId, "cover", input.coverUrl)
-      if (typeof stored === "object") return null
-      patch.coverUrl = stored
+    if (input.bio !== undefined) data.bio = input.bio.trim().slice(0, 400)
+    if (input.location !== undefined) data.location = input.location.trim().slice(0, 80)
+    if (input.website !== undefined) {
+      data.website = safeWebsite(input.website)
     }
-  }
-
-  await profiles.updateOne({ clerkId: userId }, { $set: patch })
-  const profile = await profiles.findOne({ clerkId: userId })
-  if (!profile) return null
-
-  await works.updateMany(
-    { clerkId: userId },
-    {
-      $set: {
-        "author.displayName": profile.displayName,
-        "author.tagline": profile.tagline,
-        "author.avatarUrl": profile.avatarUrl,
-      },
+    if (input.avatarUrl !== undefined) {
+      if (input.avatarUrl === null || input.avatarUrl === "") {
+        data.avatarUrl = null
+      } else {
+        const stored = await storeUserMedia(userId, "avatar", input.avatarUrl)
+        if (typeof stored === "object") return null
+        data.avatarUrl = stored
+      }
     }
-  )
+    if (input.coverUrl !== undefined) {
+      if (input.coverUrl === null || input.coverUrl === "") {
+        data.coverUrl = null
+      } else {
+        const stored = await storeUserMedia(userId, "cover", input.coverUrl)
+        if (typeof stored === "object") return null
+        data.coverUrl = stored
+      }
+    }
 
-  return {
-    username: profile.username,
-    displayName: profile.displayName,
-    tagline: profile.tagline,
-    avatarUrl: profile.avatarUrl,
+    const updated = await db.studioProfile.update({
+      where: { clerkId: userId },
+      data,
+    })
+
+    return {
+      username: updated.username,
+      displayName: updated.displayName,
+      tagline: updated.tagline,
+      avatarUrl: updated.avatarUrl,
+    }
+  } catch (error) {
+    console.error("Studio updateMyProfile error:", error)
+    return null
   }
 }
 
 export async function isMyUsername(username: string): Promise<boolean> {
   const { userId } = await auth()
-  if (!userId) return false
-  const db = await studioDb()
-  if (!db) return false
-  const { profiles } = await cols(db)
-  const profile = await profiles.findOne({ clerkId: userId })
-  return profile?.username === username
+  if (!userId || !isDbConfigured()) return false
+  try {
+    const profile = await db.studioProfile.findUnique({ where: { clerkId: userId } })
+    return profile?.username === username
+  } catch {
+    return false
+  }
 }
 
 export async function publishWork(input: {
@@ -424,8 +457,7 @@ export async function publishWork(input: {
 }): Promise<PublicWork | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: "Sign in to publish." }
-  const db = await studioDb()
-  if (!db) return { error: "Studio wall is offline. Try again in a moment." }
+  if (!isDbConfigured()) return { error: "Studio wall is offline. Try again in a moment." }
 
   const prompt = input.prompt.trim().slice(0, 800)
   const tagline = input.tagline.trim().slice(0, 140)
@@ -436,53 +468,82 @@ export async function publishWork(input: {
   const author = await upsertMyProfile()
   if (!author) return { error: "Could not open your profile." }
 
-  const { works } = await cols(db)
-  let slug = slugify(tagline)
-  const clash = await works.findOne({ slug })
-  if (clash) slug = `${slug}-${Date.now().toString(36).slice(-4)}`
+  try {
+    let slug = slugify(tagline)
+    const clash = await db.studioWork.findUnique({ where: { slug } })
+    if (clash) slug = `${slug}-${Date.now().toString(36).slice(-4)}`
 
-  const doc: WorkDoc = {
-    slug,
-    clerkId: userId,
-    kind: input.kind,
-    prompt,
-    tagline,
-    ratio: input.ratio.slice(0, 8),
-    paper: input.paper?.slice(0, 24),
-    motion: input.motion?.slice(0, 24),
-    length: input.length?.slice(0, 8),
-    palette: paletteFromPrompt(prompt),
-    likeCount: 0,
-    commentCount: 0,
-    featured: false,
-    createdAt: new Date(),
-    author,
+    const created = await db.studioWork.create({
+      data: {
+        slug,
+        clerkId: userId,
+        kind: input.kind,
+        prompt,
+        tagline,
+        ratio: input.ratio.slice(0, 8),
+        paper: input.paper?.slice(0, 24),
+        motion: input.motion?.slice(0, 24),
+        length: input.length?.slice(0, 8),
+        palette: paletteFromPrompt(prompt),
+        likeCount: 0,
+        commentCount: 0,
+        featured: false,
+      },
+    })
+
+    const profile = await db.studioProfile.findUnique({ where: { clerkId: userId } })
+    const profileMap = new Map<string, StudioProfile>()
+    if (profile) profileMap.set(profile.clerkId, profile)
+
+    return toPublicWork(created, profileMap, false)
+  } catch (error) {
+    console.error("Studio publishWork error:", error)
+    return { error: "Failed to publish work." }
   }
-
-  await works.insertOne(doc)
-  return toPublicWork(doc, false)
 }
 
 export async function toggleLike(slug: string): Promise<{ likeCount: number; liked: boolean } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: "Sign in to like." }
-  const db = await studioDb()
-  if (!db) return { error: "Studio wall is offline." }
+  if (!isDbConfigured()) return { error: "Studio wall is offline." }
 
-  const { works, likes } = await cols(db)
-  const work = await works.findOne({ slug })
-  if (!work) return { error: "Work not found." }
+  try {
+    const work = await db.studioWork.findUnique({ where: { slug } })
+    if (!work) return { error: "Work not found." }
 
-  const existing = await likes.findOne({ slug, clerkId: userId })
-  if (existing) {
-    await likes.deleteOne({ slug, clerkId: userId })
-    await works.updateOne({ slug }, { $inc: { likeCount: -1 } })
-    return { likeCount: Math.max(0, work.likeCount - 1), liked: false }
+    const existing = await db.studioLike.findUnique({
+      where: {
+        slug_clerkId: { slug, clerkId: userId },
+      },
+    })
+
+    if (existing) {
+      await db.$transaction([
+        db.studioLike.delete({
+          where: { slug_clerkId: { slug, clerkId: userId } },
+        }),
+        db.studioWork.update({
+          where: { slug },
+          data: { likeCount: { decrement: 1 } },
+        }),
+      ])
+      return { likeCount: Math.max(0, work.likeCount - 1), liked: false }
+    }
+
+    await db.$transaction([
+      db.studioLike.create({
+        data: { slug, clerkId: userId },
+      }),
+      db.studioWork.update({
+        where: { slug },
+        data: { likeCount: { increment: 1 } },
+      }),
+    ])
+    return { likeCount: work.likeCount + 1, liked: true }
+  } catch (error) {
+    console.error("Studio toggleLike error:", error)
+    return { error: "Could not update like." }
   }
-
-  await likes.insertOne({ slug, clerkId: userId })
-  await works.updateOne({ slug }, { $inc: { likeCount: 1 } })
-  return { likeCount: work.likeCount + 1, liked: true }
 }
 
 export async function addComment(slug: string, body: string): Promise<PublicComment | { error: string }> {
@@ -491,35 +552,45 @@ export async function addComment(slug: string, body: string): Promise<PublicComm
   const text = body.trim().slice(0, 400)
   if (text.length < 2) return { error: "Write a comment." }
 
-  const db = await studioDb()
-  if (!db) return { error: "Studio wall is offline." }
+  if (!isDbConfigured()) return { error: "Studio wall is offline." }
 
-  const { works, comments } = await cols(db)
-  const work = await works.findOne({ slug })
-  if (!work) return { error: "Work not found." }
+  try {
+    const work = await db.studioWork.findUnique({ where: { slug } })
+    if (!work) return { error: "Work not found." }
 
-  const author = await upsertMyProfile()
-  if (!author) return { error: "Could not open your profile." }
+    const author = await upsertMyProfile()
+    if (!author) return { error: "Could not open your profile." }
 
-  const doc: CommentDoc = {
-    slug,
-    clerkId: userId,
-    body: text,
-    createdAt: new Date(),
-    author: {
-      username: author.username,
-      displayName: author.displayName,
-      avatarUrl: author.avatarUrl,
-    },
-  }
-  const result = await comments.insertOne(doc)
-  await works.updateOne({ slug }, { $inc: { commentCount: 1 } })
+    const [comment] = await db.$transaction([
+      db.studioComment.create({
+        data: {
+          slug,
+          clerkId: userId,
+          authorUsername: author.username,
+          authorName: author.displayName,
+          authorAvatarUrl: author.avatarUrl,
+          body: text,
+        },
+      }),
+      db.studioWork.update({
+        where: { slug },
+        data: { commentCount: { increment: 1 } },
+      }),
+    ])
 
-  return {
-    id: String(result.insertedId),
-    body: text,
-    createdAt: doc.createdAt.toISOString(),
-    author: doc.author,
+    return {
+      id: comment.id,
+      body: text,
+      createdAt: comment.createdAt.toISOString(),
+      author: {
+        username: author.username,
+        displayName: author.displayName,
+        avatarUrl: author.avatarUrl,
+      },
+    }
+  } catch (error) {
+    console.error("Studio addComment error:", error)
+    return { error: "Could not save comment." }
   }
 }
 
