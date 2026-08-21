@@ -1,20 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import Link from "next/link"
 
 const KEY = "flatify-cookie-ok"
 
-export default function CookieBanner() {
-  const [open, setOpen] = useState(false)
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback)
+  return () => window.removeEventListener("storage", callback)
+}
 
-  useEffect(() => {
-    try {
-      setOpen(window.localStorage.getItem(KEY) !== "1")
-    } catch {
-      setOpen(false)
-    }
-  }, [])
+function getSnapshot() {
+  try {
+    return window.localStorage.getItem(KEY) !== "1"
+  } catch {
+    return false
+  }
+}
+
+function getServerSnapshot() {
+  return false
+}
+
+export default function CookieBanner() {
+  const open = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   if (!open) return null
 
@@ -38,10 +47,10 @@ export default function CookieBanner() {
           onClick={() => {
             try {
               window.localStorage.setItem(KEY, "1")
+              window.dispatchEvent(new Event("storage"))
             } catch {
               /* ignore */
             }
-            setOpen(false)
           }}
         >
           OK

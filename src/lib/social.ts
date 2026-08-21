@@ -204,7 +204,12 @@ export async function getWork(slug: string, clerkId: string | null): Promise<Pub
 
 export async function listComments(slug: string): Promise<PublicComment[]> {
   if (!isDbConfigured()) {
-    return SEED_COMMENTS.filter((comment) => comment.slug === slug).map(({ slug: _s, ...rest }) => rest)
+    return SEED_COMMENTS.filter((comment) => comment.slug === slug).map((comment) => ({
+      id: comment.id,
+      body: comment.body,
+      createdAt: comment.createdAt,
+      author: comment.author,
+    }))
   }
 
   try {
@@ -227,7 +232,12 @@ export async function listComments(slug: string): Promise<PublicComment[]> {
     }))
   } catch (error) {
     console.error("Studio listComments error:", error)
-    return SEED_COMMENTS.filter((comment) => comment.slug === slug).map(({ slug: _s, ...rest }) => rest)
+    return SEED_COMMENTS.filter((comment) => comment.slug === slug).map((comment) => ({
+      id: comment.id,
+      body: comment.body,
+      createdAt: comment.createdAt,
+      author: comment.author,
+    }))
   }
 }
 

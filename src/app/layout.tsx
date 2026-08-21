@@ -3,7 +3,6 @@ import type {Metadata, Viewport} from 'next';
 import {ClerkProvider} from '@clerk/nextjs';
 import {Geist_Mono, Manrope, Syne} from 'next/font/google';
 import './globals.css';
-import { UserRoleProvider } from '@/contexts/UserRoleContext';
 import { Toaster } from "@/components/ui/toaster";
 import CookieBanner from "@/components/site/CookieBanner";
 
@@ -60,13 +59,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="dark" suppressHydrationWarning>
         <body className={`${syne.variable} ${manrope.variable} ${geistMono.variable} antialiased min-h-dvh min-w-0 flex flex-col`} suppressHydrationWarning={true}>
-          {/* Removed Clerk's UserButton from root layout to avoid duplication with AppLayout's custom user menu */}
-          {/* Removed header for signed-out users as requested */}
-          <UserRoleProvider>
-            {children}
-            <Toaster />
-            <CookieBanner />
-          </UserRoleProvider>
+          {children}
+          <Toaster />
+          <CookieBanner />
         </body>
       </html>
     </ClerkProvider>

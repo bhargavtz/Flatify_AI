@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1115.0",
+    "@aws-sdk/s3-request-presigner": "^3.1115.0",
     "@clerk/nextjs": "^6.39.6",
     "@clerk/themes": "^2.4.57",
     "@genkit-ai/googleai": "^1.28.0",

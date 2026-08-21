@@ -18,7 +18,9 @@ export function isSafeMediaUrl(value: string): boolean {
       host.endsWith(".clerk.accounts.dev") ||
       host.endsWith(".supabase.co") ||
       host.endsWith(".r2.dev") ||
-      host === "img.clerk.com"
+      host.endsWith(".pollinations.ai") ||
+      host === "img.clerk.com" ||
+      host === "image.pollinations.ai"
     )
   } catch {
     return false

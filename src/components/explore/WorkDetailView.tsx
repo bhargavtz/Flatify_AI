@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
@@ -20,14 +20,16 @@ export default function WorkDetailView({
   const router = useRouter()
   const [work, setWork] = useState(initialWork)
   const [comments, setComments] = useState(initialComments)
+  const [prevSlug, setPrevSlug] = useState(initialWork.slug)
   const [draft, setDraft] = useState("")
   const [copyLabel, setCopyLabel] = useState("Copy prompt")
   const [error, setError] = useState("")
 
-  useEffect(() => {
+  if (initialWork.slug !== prevSlug) {
+    setPrevSlug(initialWork.slug)
     setWork(initialWork)
     setComments(initialComments)
-  }, [initialWork, initialComments])
+  }
 
   const like = async () => {
     if (!isSignedIn) {

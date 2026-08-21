@@ -13,14 +13,12 @@ const COST_CENTS: Record<string, number> = {
   image: 12,
   video: 48,
   cut: 20,
-  logo: 8,
 }
 
 const CREDIT_COST: Record<string, number> = {
   image: 2,
   video: 8,
   cut: 4,
-  logo: 1,
 }
 
 async function accountFor(clerkId: string): Promise<StudioAccount> {
@@ -261,7 +259,7 @@ export async function getActiveUserKey(
 
 export async function logGeneration(input: {
   clerkId: string
-  kind: WorkKind | "cut" | "logo"
+  kind: WorkKind | "cut"
   prompt: string
   usedOwnKey: boolean
   provider: string
