@@ -47,7 +47,14 @@ function readImage(file: File, maxW: number, maxH: number): Promise<string> {
 export default function SettingsDesk() {
   const { isLoaded, isSignedIn } = useUser()
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>("public")
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "public"
+    const fromUrl = new URLSearchParams(window.location.search).get("tab")
+    if (fromUrl === "public" || fromUrl === "plan" || fromUrl === "list" || fromUrl === "keys") {
+      return fromUrl
+    }
+    return "public"
+  })
   const [data, setData] = useState<SettingsBundle | null>(null)
   const [saved, setSaved] = useState("")
   const [error, setError] = useState("")
@@ -57,13 +64,6 @@ export default function SettingsDesk() {
   useEffect(() => {
     if (isLoaded && !isSignedIn) router.push("/signup")
   }, [isLoaded, isSignedIn, router])
-
-  useEffect(() => {
-    const fromUrl = new URLSearchParams(window.location.search).get("tab")
-    if (fromUrl === "public" || fromUrl === "plan" || fromUrl === "list" || fromUrl === "keys") {
-      setTab(fromUrl)
-    }
-  }, [])
 
   const load = () => {
     fetch("/api/settings")

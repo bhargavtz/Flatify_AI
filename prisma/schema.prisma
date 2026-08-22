@@ -58,7 +58,6 @@ model User {
   generations        Generation[]
   creditTransactions CreditTransaction[]
   subscriptions      Subscription[]
-  promptHistories    PromptHistory[]
 
   @@index([clerkId])
   @@index([email])
@@ -83,23 +82,23 @@ model Project {
 }
 
 model Generation {
-  id           String           @id @default(uuid())
-  userId       String           @map("user_id")
-  projectId    String?          @map("project_id")
-  prompt       String
-  negativePrompt String?        @map("negative_prompt")
-  modelEngine  ModelEngine      @default(FLATIFY_VECTOR_PRO) @map("model_engine")
-  modelParams  Json?            @map("model_params")
-  outputUrl    String?          @map("output_url")
-  vectorSvgCode String?         @map("vector_svg_code")
-  status       GenerationStatus @default(PENDING)
-  creditsCost  Int              @default(1) @map("credits_cost")
-  latencyMs    Int?             @map("latency_ms")
-  createdAt    DateTime         @default(now()) @map("created_at")
-  updatedAt    DateTime         @updatedAt @map("updated_at")
+  id            String           @id @default(uuid())
+  userId        String           @map("user_id")
+  projectId     String?          @map("project_id")
+  prompt        String
+  negativePrompt String?         @map("negative_prompt")
+  modelEngine   ModelEngine      @default(FLATIFY_VECTOR_PRO) @map("model_engine")
+  modelParams   Json?            @map("model_params")
+  outputUrl     String?          @map("output_url")
+  vectorSvgCode String?          @map("vector_svg_code")
+  status        GenerationStatus @default(PENDING)
+  creditsCost   Int              @default(1) @map("credits_cost")
+  latencyMs     Int?             @map("latency_ms")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
 
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project      Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([status])
@@ -137,17 +136,171 @@ model Subscription {
   @@map("subscriptions")
 }
 
-model PromptHistory {
+model UserPromptHistory {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique @map("clerk_id")
+  prompts   String[]
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([clerkId])
+  @@map("user_prompt_histories")
+}
+
+model StudioWork {
+  id           String          @id @default(uuid())
+  slug         String          @unique
+  clerkId      String          @map("clerk_id")
+  kind         String
+  prompt       String
+  tagline      String
+  ratio        String
+  paper        String?
+  motion       String?
+  length       String?
+  palette      String[]
+  likeCount    Int             @default(0) @map("like_count")
+  commentCount Int             @default(0) @map("comment_count")
+  featured     Boolean         @default(false)
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  likes        StudioLike[]
+  comments     StudioComment[]
+
+  @@index([clerkId])
+  @@index([kind])
+  @@index([createdAt])
+  @@index([likeCount])
+  @@map("studio_works")
+}
+
+model StudioProfile {
   id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  prompt      String
-  category    String?
-  modelEngine String?  @map("model_engine")
+  clerkId     String   @unique @map("clerk_id")
+  username    String   @unique
+  displayName String   @map("display_name")
+  tagline     String   @default("Frames on the table.")
+  avatarUrl   String?  @map("avatar_url")
+  bio         String?  @default("")
+  coverUrl    String?  @map("cover_url")
+  location    String?  @default("")
+  website     String?  @default("")
+  updatedAt   DateTime @updatedAt @map("updated_at")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([username])
+  @@map("studio_profiles")
+}
+
+model StudioLike {
+  id        String     @id @default(uuid())
+  slug      String
+  clerkId   String     @map("clerk_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  work      StudioWork @relation(fields: [slug], references: [slug], onDelete: Cascade)
+
+  @@unique([slug, clerkId])
+  @@index([clerkId])
+  @@map("studio_likes")
+}
+
+model StudioComment {
+  id              String     @id @default(uuid())
+  slug            String
+  clerkId         String     @map("clerk_id")
+  authorUsername  String     @map("author_username")
+  authorName      String     @map("author_name")
+  authorAvatarUrl String?    @map("author_avatar_url")
+  body            String
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  work            StudioWork @relation(fields: [slug], references: [slug], onDelete: Cascade)
+
+  @@index([slug])
+  @@index([clerkId])
+  @@map("studio_comments")
+}
+
+model StudioJob {
+  id          String   @id @default(uuid())
+  clerkId     String   @map("clerk_id")
+  kind        String
+  prompt      String
+  creditsCost Int      @default(0) @map("credits_cost")
+  usdCents    Int      @default(0) @map("usd_cents")
+  provider    String
+  usedOwnKey  Boolean  @default(false) @map("used_own_key")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([clerkId])
+  @@index([createdAt])
+  @@map("studio_jobs")
+}
+
+model StudioKey {
+  id        String   @id @default(uuid())
+  clerkId   String   @map("clerk_id")
+  provider  String
+  last4     String
+  encrypted String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([clerkId, provider])
+  @@index([clerkId])
+  @@map("studio_keys")
+}
+
+model StudioAccount {
+  id          String   @id @default(uuid())
+  clerkId     String   @unique @map("clerk_id")
+  plan        String   @default("FREE")
+  useOwnKeys  Boolean  @default(false) @map("use_own_keys")
+  creditsUsed Int      @default(0) @map("credits_used")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("studio_accounts")
+}
+
+model NoviceGeneration {
+  id                  String   @id @default(uuid())
+  userId              String   @map("user_id")
+  businessName        String   @map("business_name")
+  businessDescription String   @map("business_description")
+  primaryColor        String?  @map("primary_color")
+  secondaryColor      String?  @map("secondary_color")
+  logoDataUri         String   @map("logo_data_uri")
+  createdAt           DateTime @default(now()) @map("created_at")
 
   @@index([userId])
-  @@index([createdAt])
-  @@map("prompt_histories")
+  @@map("novice_generations")
+}
+
+model ProfessionalGeneration {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  originalPrompt String?  @map("original_prompt")
+  refinedPrompt  String?  @map("refined_prompt")
+  usedPrompt     String   @map("used_prompt")
+  logoDataUri    String   @map("logo_data_uri")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("professional_generations")
+}
+
+model ImageEditorGeneration {
+  id                       String   @id @default(uuid())
+  userId                   String   @map("user_id")
+  sourceImageUri           String   @map("source_image_uri")
+  sourceImageOriginalName  String?  @map("source_image_original_name")
+  businessName             String   @map("business_name")
+  businessDescription      String   @map("business_description")
+  logoDataUri              String   @map("logo_data_uri")
+  createdAt                DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("image_editor_generations")
 }

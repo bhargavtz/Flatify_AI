@@ -51,7 +51,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing user id." }, { status: 400 })
   }
 
-  const email = email_addresses?.[0]?.email_address || ""
+  const rawEmail = email_addresses?.[0]?.email_address
+  const email = rawEmail && rawEmail.trim().length > 0 ? rawEmail.trim() : `${id}@clerk.user`
   const name = `${first_name || ""} ${last_name || ""}`.trim()
 
   try {

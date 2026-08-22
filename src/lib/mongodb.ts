@@ -6,11 +6,10 @@ let clientPromiseInternal: Promise<MongoClient>
 const getClientPromise = (): Promise<MongoClient> => {
   if (clientPromiseInternal) return clientPromiseInternal;
 
-  if (!process.env.MONGODB_URI) {
-    throw new Error('Invalid/Missing environment variable: "MONGODB_URI"')
+  const uri = process.env.MONGODB_URI || process.env.DATABASE_URL
+  if (!uri) {
+    throw new Error('Invalid/Missing environment variable: "MONGODB_URI" or "DATABASE_URL"')
   }
-
-  const uri = process.env.MONGODB_URI
   const options = {
     serverApi: {
       version: ServerApiVersion.v1,

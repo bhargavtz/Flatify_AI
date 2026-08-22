@@ -29,9 +29,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Invalid suggestion type" }, { status: 400 })
     }
 
+    const mimeMatch = typeof sourceImageUri === "string" ? sourceImageUri.match(/^data:([^;]+);base64,/) : null
+    const contentType = mimeMatch?.[1] || "image/jpeg"
+
     const response = await ai.generate({
-      model: "googleai/gemini-2.0-flash",
-      prompt: [{ text: prompt }, { media: { url: sourceImageUri, contentType: "image/jpeg" } }],
+      model: "googleai/gemini-2.5-flash",
+      prompt: [{ text: prompt }, { media: { url: sourceImageUri, contentType } }],
       config: { temperature: 0.7 },
     })
 

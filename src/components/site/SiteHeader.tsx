@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
@@ -10,8 +10,10 @@ import { AnimatePresence, motion } from "framer-motion"
 
 const LINKS = [
   { href: "/images", label: "Images" },
-  { href: "/video", label: "Video" },
+  { href: "/video", label: "Cinema" },
+  { href: "/soul", label: "Soul ID" },
   { href: "/studio", label: "Studio" },
+  { href: "/library", label: "Library" },
   { href: "/explore", label: "Explore" },
   { href: "/pricing", label: "Plans" },
 ]
@@ -19,10 +21,12 @@ const LINKS = [
 export default function SiteHeader() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [prevPathname, setPrevPathname] = useState(pathname)
 
-  useEffect(() => {
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname)
     setOpen(false)
-  }, [pathname])
+  }
 
   return (
     <header
