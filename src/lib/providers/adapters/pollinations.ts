@@ -10,7 +10,7 @@ let lastPollinationsCallTimestamp = 0
 
 export class PollinationsAdapter implements ImageProvider {
   id = "pollinations"
-  name = "Pollinations Diffusion (SDXL Turbo / Flux)"
+  name = "FLUX.1 Diffusion Engine"
 
   getCapabilities(): ProviderCapabilities {
     return {
@@ -24,45 +24,77 @@ export class PollinationsAdapter implements ImageProvider {
         { width: 720, height: 1080 },
       ],
       supportsSeed: true,
-      supportsNegativePrompt: false,
+      supportsNegativePrompt: true,
       supportsAsync: false,
       supportsCancellation: false,
       rateLimitPerMinute: 20,
-      maxConcurrency: 1, // Strict single-concurrency queue to prevent 429
+      maxConcurrency: 1, // Single-concurrency queue to prevent 429
     }
   }
 
   async generate(req: ProviderGenerateRequest): Promise<ProviderGenerateResponse> {
-    // Enforce 1.5s spacing between consecutive requests from the same server IP to prevent 429
+    // Enforce 2.4s spacing between consecutive requests from the same server IP to prevent 429
     const now = Date.now()
     const elapsed = now - lastPollinationsCallTimestamp
-    if (elapsed < 1600) {
-      await new Promise((r) => setTimeout(r, 1600 - elapsed))
+    if (elapsed < 2400) {
+      await new Promise((r) => setTimeout(r, 2400 - elapsed))
     }
     lastPollinationsCallTimestamp = Date.now()
 
-    const primaryModel = req.model || "turbo"
-    // Try primary model first, fallback to alternate model if rate limited
-    const response = await this.executeFetch(req, primaryModel)
-    if (!response.ok && response.error?.retryable && primaryModel === "turbo") {
-      // Automatic instantaneous fallback to Flux compute pool if Turbo is congested
-      await new Promise((r) => setTimeout(r, 800))
-      const fluxResponse = await this.executeFetch(req, "flux")
-      if (fluxResponse.ok) return fluxResponse
+    // Multi-tier model fallback: Try FLUX first, then Turbo
+    const preferredModel = req.model || "flux"
+    const modelCandidates = preferredModel === "flux" ? ["flux", "turbo"] : ["turbo", "flux"]
+
+    let lastError: NormalizedProviderError | undefined
+
+    for (const model of modelCandidates) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) {
+          // Wait before second attempt on same model
+          await new Promise((r) => setTimeout(r, 3000))
+          lastPollinationsCallTimestamp = Date.now()
+        }
+
+        const response = await this.executeFetch(req, model)
+        if (response.ok) {
+          return response
+        }
+
+        lastError = response.error
+        if (!response.error?.retryable) {
+          // Non-retryable error (e.g. 400 bad prompt)
+          return response
+        }
+      }
     }
 
-    return response
+    return {
+      ok: false,
+      width: req.width,
+      height: req.height,
+      sizeBytes: 0,
+      seed: req.seed,
+      model: preferredModel,
+      error: lastError || {
+        code: "RATE_LIMITED",
+        message: "Diffusion queue busy, retrying next slot.",
+        retryable: true,
+        retryAfterSeconds: 3,
+      },
+    }
   }
 
   private async executeFetch(
     req: ProviderGenerateRequest,
     model: string
   ): Promise<ProviderGenerateResponse> {
-    const encodedPrompt = encodeURIComponent(req.prompt)
+    // Keep prompt crisp and clean for optimum URL query tolerance
+    const cleanPrompt = req.prompt.length > 320 ? req.prompt.slice(0, 320) : req.prompt
+    const encodedPrompt = encodeURIComponent(cleanPrompt)
     const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${req.width}&height=${req.height}&model=${model}&seed=${req.seed}&nologo=true`
 
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 38000)
+    const timer = setTimeout(() => controller.abort(), 45000)
 
     try {
       const res = await fetch(url, {
@@ -113,7 +145,7 @@ export class PollinationsAdapter implements ImageProvider {
             message: "Provider returned non-image content",
             status: res.status,
             retryable: true,
-            retryAfterSeconds: 2,
+            retryAfterSeconds: 3,
           },
         }
       }
@@ -131,7 +163,7 @@ export class PollinationsAdapter implements ImageProvider {
             code: "CORRUPTED_IMAGE_BYTES",
             message: "Image buffer failed binary bitmap validation",
             retryable: true,
-            retryAfterSeconds: 2,
+            retryAfterSeconds: 3,
           },
         }
       }
@@ -167,10 +199,10 @@ export class PollinationsAdapter implements ImageProvider {
     if (status === 429) {
       return {
         code: "RATE_LIMITED",
-        message: "Provider concurrency limit reached. Waiting for queue clearance.",
+        message: "Queue busy, awaiting next clearance slot.",
         status: 429,
         retryable: true,
-        retryAfterSeconds: error?.retryAfter || 2,
+        retryAfterSeconds: error?.retryAfter || 3,
       }
     }
 
@@ -180,7 +212,7 @@ export class PollinationsAdapter implements ImageProvider {
         message: "Diffusion server timed out or is temporarily unavailable.",
         status,
         retryable: true,
-        retryAfterSeconds: 2,
+        retryAfterSeconds: 3,
       }
     }
 
@@ -207,7 +239,7 @@ export class PollinationsAdapter implements ImageProvider {
       message: msg,
       status,
       retryable: true,
-      retryAfterSeconds: 2,
+      retryAfterSeconds: 3,
     }
   }
 

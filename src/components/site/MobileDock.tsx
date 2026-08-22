@@ -2,14 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Clapperboard, Compass, Image as ImageIcon, Layers, Library } from "lucide-react"
+import { Clapperboard, Compass, Image as ImageIcon, Library, User } from "lucide-react"
 
 const ITEMS = [
   { href: "/images", label: "Images", icon: ImageIcon },
-  { href: "/video", label: "Video", icon: Clapperboard },
+  { href: "/video", label: "Cinema", icon: Clapperboard },
+  { href: "/soul", label: "Soul", icon: User },
   { href: "/explore", label: "Explore", icon: Compass },
-  { href: "/studio", label: "Cut", icon: Layers },
-  { href: "/settings", label: "You", icon: Library },
+  { href: "/library", label: "Library", icon: Library },
 ]
 
 export default function MobileDock() {

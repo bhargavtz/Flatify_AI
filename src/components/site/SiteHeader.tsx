@@ -10,7 +10,8 @@ import { AnimatePresence, motion } from "framer-motion"
 
 const LINKS = [
   { href: "/images", label: "Images" },
-  { href: "/video", label: "Video" },
+  { href: "/video", label: "Cinema" },
+  { href: "/soul", label: "Soul ID" },
   { href: "/studio", label: "Studio" },
   { href: "/library", label: "Library" },
   { href: "/explore", label: "Explore" },

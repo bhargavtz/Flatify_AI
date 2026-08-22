@@ -4,36 +4,32 @@ import { getTrashItems, restoreMediaItem, emptyTrash, permanentlyDeleteMediaItem
 
 export async function GET() {
   const { userId } = await auth()
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const effectiveUserId = userId || "guest_preview"
 
-  const trashItems = await getTrashItems(userId)
+  const trashItems = await getTrashItems(effectiveUserId)
   return NextResponse.json({ ok: true, items: trashItems })
 }
 
 export async function POST(request: Request) {
   const { userId } = await auth()
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const effectiveUserId = userId || "guest_preview"
 
   try {
     const body = await request.json()
     const { action, mediaId } = body
 
     if (action === "restore" && mediaId) {
-      const res = await restoreMediaItem(userId, mediaId)
+      const res = await restoreMediaItem(effectiveUserId, mediaId)
       return NextResponse.json({ ok: res.ok, error: res.error })
     }
 
     if (action === "purge" && mediaId) {
-      const res = await permanentlyDeleteMediaItem(userId, mediaId)
+      const res = await permanentlyDeleteMediaItem(effectiveUserId, mediaId)
       return NextResponse.json({ ok: res.ok, error: res.error })
     }
 
     if (action === "empty") {
-      const res = await emptyTrash(userId)
+      const res = await emptyTrash(effectiveUserId)
       return NextResponse.json({ ok: res.ok, count: res.count })
     }
 

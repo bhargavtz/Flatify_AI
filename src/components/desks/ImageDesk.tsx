@@ -14,11 +14,21 @@ import {
   AlertCircle,
   Clock,
   RotateCw,
+  Lock,
 } from "lucide-react"
 import PublishPanel from "@/components/explore/PublishPanel"
 import type { GenerationTake, BatchDetailResponse } from "@/lib/generation-types"
 
 const RATIOS = ["1:1", "16:9", "4:3", "9:16"] as const
+
+const IMAGE_MODELS = [
+  { id: "flux", name: "FLUX.1 Flagship", desc: "100/100 Photorealism & Microtextures" },
+  { id: "turbo", name: "SDXL Turbo", desc: "Real-time Ultra-Fast Generation" },
+  { id: "imagen-3", name: "Google Imagen 3", desc: "Google DeepMind Visual Foundation" },
+  { id: "dall-e-3", name: "DALL-E 3", desc: "OpenAI Creative Fidelity" },
+  { id: "midjourney", name: "Midjourney Style", desc: "Cinematic Drama & Contrast" },
+]
+
 const PAPERS = [
   { id: "held", label: "Held light", desc: "Warm ambient studio illumination" },
   { id: "night", label: "Night street", desc: "Moody sodium lamps & deep contrast" },
@@ -38,6 +48,7 @@ export default function ImageDesk() {
     if (typeof window === "undefined") return "A wet street at dusk, sodium lamps, one figure in a cobalt coat"
     return new URLSearchParams(window.location.search).get("prompt") || "A wet street at dusk, sodium lamps, one figure in a cobalt coat"
   })
+  const [model, setModel] = useState("flux")
   const [ratio, setRatio] = useState<(typeof RATIOS)[number]>("16:9")
   const [paper, setPaper] = useState("held")
 
@@ -124,6 +135,7 @@ export default function ImageDesk() {
           prompt,
           ratio,
           paper,
+          requestedModel: model,
         }),
       })
 
@@ -191,28 +203,69 @@ export default function ImageDesk() {
           Generates 4 genuine AI diffusion takes concurrently with composition diversity and real-time state tracking.
         </p>
 
-        <label htmlFor="image-brief" className="mt-8 block font-mono text-[11px] uppercase tracking-[0.16em] text-mist">
-          Prompt Brief
-        </label>
+        <div className="mt-8 flex items-center justify-between">
+          <label htmlFor="image-brief" className="block font-mono text-[11px] uppercase tracking-[0.16em] text-mist">
+            Prompt Brief
+          </label>
+          {isGenerating && (
+            <span className="inline-flex items-center gap-1 font-mono text-[10px] text-saffron bg-saffron/10 px-2 py-0.5 rounded border border-saffron/30">
+              <Lock className="w-3 h-3" />
+              Layout Locked
+            </span>
+          )}
+        </div>
         <textarea
           id="image-brief"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          disabled={isGenerating}
           rows={4}
           spellCheck={false}
           autoComplete="off"
           placeholder="A wet street at dusk, sodium lamps, one figure in a cobalt coat…"
-          className="mt-2 w-full resize-none rounded-md border border-chalk/15 bg-slateink p-4 text-sm text-chalk placeholder:text-mist/50 focus:border-cobalt focus:outline-none"
+          className={`mt-2 w-full resize-none rounded-md border border-chalk/15 bg-slateink p-4 text-sm text-chalk placeholder:text-mist/50 focus:border-cobalt focus:outline-none transition-opacity ${
+            isGenerating ? "opacity-60 cursor-not-allowed" : ""
+          }`}
         />
 
-        <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-mist">Aspect Ratio</p>
+        <div className="mt-6 flex items-center justify-between">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mist flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-cobalt" />
+            AI Image Model
+          </p>
+        </div>
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {IMAGE_MODELS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setModel(m.id)}
+              disabled={isGenerating}
+              className={`btn-press touch rounded-md p-2.5 text-left transition-all ${
+                isGenerating ? "cursor-not-allowed opacity-60" : ""
+              } ${
+                model === m.id
+                  ? "border border-cobalt bg-cobalt/20 text-chalk"
+                  : "border border-chalk/15 text-mist hover:text-chalk"
+              }`}
+            >
+              <p className="text-xs font-semibold text-chalk">{m.name}</p>
+              <p className="text-[10px] text-mist/70 mt-0.5 line-clamp-1">{m.desc}</p>
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-mist">Aspect Ratio / Layout</p>
         <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Aspect ratio">
           {RATIOS.map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => setRatio(r)}
-              className={`btn-press touch rounded-md px-4 py-2 font-mono text-xs tabular-nums transition-colors ${
+              disabled={isGenerating}
+              className={`btn-press touch rounded-md px-4 py-2 font-mono text-xs tabular-nums transition-all ${
+                isGenerating ? "cursor-not-allowed opacity-60" : ""
+              } ${
                 ratio === r ? "bg-chalk text-ink font-semibold" : "border border-chalk/15 text-mist hover:text-chalk"
               }`}
             >
@@ -228,7 +281,10 @@ export default function ImageDesk() {
               key={p.id}
               type="button"
               onClick={() => setPaper(p.id)}
-              className={`btn-press touch rounded-md p-3 text-left transition-colors ${
+              disabled={isGenerating}
+              className={`btn-press touch rounded-md p-3 text-left transition-all ${
+                isGenerating ? "cursor-not-allowed opacity-60" : ""
+              } ${
                 paper === p.id ? "border border-cobalt bg-cobalt/20 text-chalk" : "border border-chalk/15 text-mist hover:text-chalk"
               }`}
             >

@@ -10,10 +10,11 @@ import { CREATIVE_DIRECTIONS } from "./generation-types"
 import { providerRegistry } from "./providers/registry"
 import { uploadBufferToR2, getR2PublicUrl, isR2Configured } from "./r2"
 import { saveMediaItem } from "./user-storage"
+import { generateDiversifiedPrompt } from "./prompt-diversifier"
 import crypto from "crypto"
 
-const MAX_GLOBAL_CONCURRENCY = 6
-const MAX_PER_USER_CONCURRENCY = 4
+const MAX_GLOBAL_CONCURRENCY = 8
+const MAX_PER_USER_CONCURRENCY = 6
 const MAX_PROVIDER_CONCURRENCY: Record<string, number> = {
   pollinations: 1, // Single-concurrency queue to prevent 429 rate-limiting
   google: 4,
@@ -101,8 +102,14 @@ export async function createGenerationBatch(input: {
 
   if (input.kind === "video") {
     const attemptId = crypto.randomBytes(8).toString("hex")
-    const seed = Math.floor(Math.random() * 9000000) + 1000000
-    const motionPrompt = `${input.prompt}, ${input.motion || "cinematic pan"} camera motion, 4k ultra detailed cinematic film frame, high resolution`
+    const { prompt: diversifiedPrompt, seed } = generateDiversifiedPrompt({
+      basePrompt: input.prompt,
+      takeNumber: 1,
+      ratio,
+      paper: input.paper,
+      motion: input.motion,
+      kind: "video",
+    })
     const take: GenerationTake = {
       _id: new ObjectId().toString(),
       batchId,
@@ -110,7 +117,7 @@ export async function createGenerationBatch(input: {
       takeNumber: 1,
       creativeDirection: "Motion Clip",
       kicker: "01 MOTION",
-      directionPrompt: motionPrompt,
+      directionPrompt: diversifiedPrompt,
       status: "queued",
       statusMessage: "Queued for motion synthesis",
       provider: batch.provider,
@@ -120,18 +127,23 @@ export async function createGenerationBatch(input: {
       width,
       height,
       retryCount: 0,
-      maxRetries: 3,
+      maxRetries: 6,
       createdAt: now,
       updatedAt: now,
     }
     takes.push(take)
     memTakes.set(take._id, take)
   } else {
-    // 4 Genuinely Distinct Creative Directions
+    // 4 Genuinely Distinct Creative Directions with Seed & Composition Diversification
     CREATIVE_DIRECTIONS.forEach((dir) => {
       const attemptId = crypto.randomBytes(8).toString("hex")
-      const seed = Math.floor(Math.random() * 9000000) + 1000000
-      const directionPrompt = `${input.prompt}, ${dir.modifier}`
+      const { prompt: diversifiedPrompt, seed } = generateDiversifiedPrompt({
+        basePrompt: input.prompt,
+        takeNumber: dir.number,
+        ratio,
+        paper: input.paper,
+        kind: "image",
+      })
       const take: GenerationTake = {
         _id: new ObjectId().toString(),
         batchId,
@@ -139,7 +151,7 @@ export async function createGenerationBatch(input: {
         takeNumber: dir.number,
         creativeDirection: dir.name,
         kicker: dir.kicker,
-        directionPrompt,
+        directionPrompt: diversifiedPrompt,
         status: "queued",
         statusMessage: `Queued: ${dir.name}`,
         provider: batch.provider,
@@ -149,7 +161,7 @@ export async function createGenerationBatch(input: {
         width,
         height,
         retryCount: 0,
-        maxRetries: 3,
+        maxRetries: 6,
         createdAt: now,
         updatedAt: now,
       }
@@ -309,19 +321,32 @@ export function triggerQueueProcessing() {
  * Core asynchronous generation worker loop
  */
 async function processNextQueueItems() {
+  const now = new Date().toISOString()
+
+  // Dynamically sync concurrency metrics with active processing takes to prevent deadlock
+  const processingTakes = Array.from(memTakes.values()).filter((t) => t.status === "processing")
+  activeGlobalJobs = processingTakes.length
+  activeUserJobs.clear()
+  activeProviderJobs.clear()
+  processingTakes.forEach((t) => {
+    activeUserJobs.set(t.userId, (activeUserJobs.get(t.userId) || 0) + 1)
+    activeProviderJobs.set(t.provider, (activeProviderJobs.get(t.provider) || 0) + 1)
+  })
+
   if (activeGlobalJobs >= MAX_GLOBAL_CONCURRENCY) {
     return
   }
 
-  const now = new Date().toISOString()
   // Collect candidate takes from memory first
   const memCandidates = Array.from(memTakes.values()).filter(
     (t) => t.status === "queued" || (t.status === "retrying" && t.nextRetryAt && t.nextRetryAt <= now)
   )
 
   for (const take of memCandidates) {
-    const userActive = activeUserJobs.get(take.userId) || 0
-    if (userActive >= MAX_PER_USER_CONCURRENCY) continue
+    if (take.userId !== "guest_preview") {
+      const userActive = activeUserJobs.get(take.userId) || 0
+      if (userActive >= MAX_PER_USER_CONCURRENCY) continue
+    }
 
     const providerLimit = MAX_PROVIDER_CONCURRENCY[take.provider] || 2
     const providerActive = activeProviderJobs.get(take.provider) || 0
@@ -329,7 +354,7 @@ async function processNextQueueItems() {
 
     // Acquire concurrency slots
     activeGlobalJobs++
-    activeUserJobs.set(take.userId, userActive + 1)
+    activeUserJobs.set(take.userId, (activeUserJobs.get(take.userId) || 0) + 1)
     activeProviderJobs.set(take.provider, providerActive + 1)
 
     // Execute take in background worker
@@ -398,9 +423,12 @@ async function executeTakeWorker(take: GenerationTake) {
     })
 
     if (res.ok && res.buffer && res.buffer.byteLength > 0) {
-      // 1. Upload validated binary bitmap to Cloudflare R2
-      const mimeType = res.mimeType || "image/jpeg"
-      const ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg"
+      // 1. Upload validated binary asset to Cloudflare R2
+      const isVideo = batch?.kind === "video" || res.mimeType?.includes("video") || res.mimeType?.includes("mp4")
+      const mimeType = res.mimeType || (isVideo ? "video/mp4" : "image/jpeg")
+      const ext = isVideo
+        ? (mimeType.includes("webm") ? "webm" : "mp4")
+        : mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg"
       const fileKey = `media/${userId}/${take.batchId}/${take.takeNumber}-${take.generationAttemptId}.${ext}`
       const nodeBuffer = Buffer.from(res.buffer)
 
@@ -415,15 +443,17 @@ async function executeTakeWorker(take: GenerationTake) {
 
       // 2. Persist media item in library
       let mediaId: string | null = null
-      if (userId && userId !== "guest_preview") {
+      if (userId) {
         try {
           const res = await saveMediaItem({
             clerkId: userId,
             key: fileKey,
             url: assetUrl,
-            kind: "image",
+            kind: batch?.kind === "video" ? "video" : "image",
             prompt: take.directionPrompt,
+            tagline: take.creativeDirection,
             ratio: `${take.width}:${take.height}`,
+            style: { paper: batch?.paper, motion: batch?.motion, length: batch?.length },
             sizeBytes: nodeBuffer.length,
           })
           if (res?.media) mediaId = res.media._id
@@ -492,7 +522,10 @@ async function executeTakeWorker(take: GenerationTake) {
         const nextRetry = new Date(Date.now() + delaySeconds * 1000).toISOString()
 
         take.status = "retrying"
-        take.statusMessage = `Retrying in ${Math.round(delaySeconds)}s: ${err.message}`
+        take.statusMessage =
+          err.code === "RATE_LIMITED"
+            ? `Synthesizing in next queue slot (${Math.round(delaySeconds)}s)…`
+            : `Retrying in ${Math.round(delaySeconds)}s: ${err.message}`
         take.retryCount = newRetryCount
         take.nextRetryAt = nextRetry
         take.errorCode = err.code
